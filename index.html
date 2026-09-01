@@ -26,7 +26,7 @@ Do not expose provider API secrets in this HTML/JavaScript.
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>CreatorChat — Stable Step 195</title>
+<title>CreatorChat — Step 210 Admin Login Fixed</title>
 <style>
 *{box-sizing:border-box}body{margin:0;max-width:100%;overflow-x:hidden;background:#f2f2f5;font-family:system-ui;color:#222}.app{max-width:430px;margin:auto;min-height:100vh}.top{background:linear-gradient(135deg,#625bf3,#8154e8);color:#fff;padding:17px 15px}.bar{display:flex;justify-content:space-between;align-items:center}.logo{font-size:22px;font-weight:850}.mode{background:#ffffff22;border:1px solid #ffffff44;color:#fff;border-radius:18px;padding:7px 10px;font-weight:700}.main{padding:14px 12px 85px}.page{display:none}.page.active{display:block}.card{background:#fff;border-radius:17px;padding:16px;margin-bottom:12px;box-shadow:0 2px 9px #0001}.profile{display:flex;gap:12px;align-items:center}.avatar{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;background:linear-gradient(135deg,#f2a7cf,#8279ee)}h1{font-size:27px;margin:0 0 7px}h2{font-size:20px;margin:0 0 9px}.muted{font-size:13px;color:#777}.btn{border:0;border-radius:11px;padding:11px 14px;background:#635bf3;color:white;font-weight:750}.light{background:#eeeaff;color:#5d55e9}.full{width:100%;margin-top:9px}.row{display:flex;justify-content:space-between;align-items:center;gap:9px}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:9px}.stat{background:#fafafa;border-radius:13px;padding:13px}.stat b{font-size:21px}.plans{display:grid;gap:9px}.plan{border:1px solid #ddd;border-radius:13px;padding:13px}.plan strong{font-size:21px}.gifts{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}.gift{background:#fafafa;border:1px solid #eee;border-radius:12px;padding:9px;text-align:center}.gift b{display:block;color:#5d55e9}.chat{height:230px;overflow:auto;background:#fafafa;border-radius:13px;padding:9px}.bubble{max-width:82%;padding:10px 12px;border-radius:15px;background:#e9e8ff;margin:7px 0}.mine{margin-left:auto;background:#635bf3;color:#fff}.composer{display:flex;gap:7px;margin-top:8px}.composer input,input,select{width:100%;padding:12px;border:1px solid #ddd;border-radius:10px;font:inherit}.composer input{flex:1}.pill{display:inline-block;background:#eeeaff;color:#5d55e9;padding:4px 8px;border-radius:14px;font-size:11px}.bottom{position:fixed;bottom:0;left:50%;transform:translateX(-50%);max-width:430px;width:100%;background:#fff;border-top:1px solid #ddd;display:flex;justify-content:space-around;padding:7px 2px}.bottom button{border:0;background:none;color:#777;font-size:10px;padding:5px}.bottom button.active{color:#ff69b4 !important;font-weight:800}.note{font-size:12px;background:#fff7e8;border:1px solid #ffe0a3;border-radius:12px;padding:12px}
 </style>
@@ -391,6 +391,61 @@ body[data-mode="creator"] #step200FinalCard{display:none!important}
 body[data-mode="admin"] #fanHistoryCard,
 body[data-mode="creator"] #fanHistoryCard{display:none!important}
 </style>
+
+
+
+
+
+<style id="step210-clean-role-visibility">
+body[data-mode="fan"] #admin,
+body[data-mode="fan"] #pricing,
+body[data-mode="fan"] #posts,
+body[data-mode="fan"] #adminGifts,
+body[data-mode="fan"] #users,
+body[data-mode="fan"] #orders,
+body[data-mode="fan"] #orderHistory,
+body[data-mode="fan"] #payout,
+body[data-mode="fan"] #insights,
+body[data-mode="fan"] #notifications,
+body[data-mode="fan"] #alerts,
+body[data-mode="fan"] #ledger,
+body[data-mode="fan"] #settings {
+  display:none!important;
+}
+body[data-mode="admin"] #home,
+body[data-mode="admin"] #profile,
+body[data-mode="admin"] #paidPosts,
+body[data-mode="admin"] #chat,
+body[data-mode="admin"] #wallet,
+body[data-mode="admin"] #fanSettings {
+  display:none!important;
+}
+body[data-mode="fan"] #adminQuickSummary{display:none!important}
+</style>
+<style id="step212-safe-fan-manager-css">
+body[data-mode="fan"] #adminFansManagementCard{display:none!important}
+</style>
+<style id="step213-fan-actions-css">
+body[data-mode="fan"] #adminFansManagementCard{display:none!important}
+</style>
+<style id="predeploy-fan-management-css">
+body[data-mode="fan"] #adminFansManagementCard,
+body[data-mode="fan"] #adminFanAccountSections{display:none!important}
+</style>
+
+
+<style id="step214-audit-css">
+body[data-mode="fan"] #adminFansManagementCard,
+body[data-mode="fan"] #adminFanAccountSections{display:none!important}
+</style>
+
+
+<style id="step215-deploy-safety">
+/* Deployment safety: Admin-only management UI never appears in Fan mode. */
+body[data-mode="fan"] #adminFansManagementCard,
+body[data-mode="fan"] #adminFanAccountSections{display:none!important}
+</style>
+
 </head>
 <body>
 
@@ -406,14 +461,60 @@ body[data-mode="creator"] #fanHistoryCard{display:none!important}
 
 <div class="app">
 <header class="top"><div class="bar"><div class="logo">CreatorChat</div><button class="hamburger" onclick="toggleMenu()" aria-label="Open menu">☰</button></div></header>
+
+
 <div class="main">
 
 <section id="admin" class="page active">
+<div class="card" id="adminQuickSummary" data-admin-only="true">
+  <div class="row">
+    <div>
+      <h2 style="margin:0">📊 Admin Dashboard</h2>
+      <div class="muted">A quick view of the creator platform.</div>
+    </div>
+    <span class="pill" id="adminLiveStatus">Loading…</span>
+  </div>
+  <div class="grid" style="margin-top:12px">
+    <div class="stat"><b id="dashFans">0</b><div class="muted">Fans</div></div>
+    <div class="stat"><b id="dashPosts">0</b><div class="muted">Posts</div></div>
+    <div class="stat"><b id="dashGifts">0</b><div class="muted">Gifts</div></div>
+    <div class="stat"><b id="dashTransactions">0</b><div class="muted">Transactions</div></div>
+  </div>
+</div>
 <div class="card profile"><div class="avatar">AK</div><div style="flex:1"><h2>Avinash</h2><div class="muted">Creator + Admin · Owner</div><span class="pill">Verified</span></div></div>
 <div class="card"><div class="row"><div><b>🟢 Creator Status</b><div class="muted">What should fans see for your status?</div></div><button class="btn" id="statusBtn" onclick="toggleCreatorStatus()">ONLINE</button></div>
 <div class="note" style="margin-top:10px">Admin can show <b>Online</b> to fans even when the creator is actually offline.</div></div>
 <div class="card"><h2>Dashboard</h2><div class="grid"><div class="stat"><b id="earn">₹0</b><div class="muted">Earnings</div></div><div class="stat"><b id="orders">0</b><div class="muted">Transactions</div></div><div class="stat"><b>1</b><div class="muted">Subscribers</div></div><div class="stat"><b>1</b><div class="muted">Active Chat</div></div></div></div>
 <div class="card"><div class="row"><div><b>Free Chat</b><div class="muted">Admin-only control</div></div><button class="btn light" onclick="toggleFree()" id="free">OFF</button></div></div>
+
+<div class="card" id="adminControlCenter">
+  <div class="row">
+    <div>
+      <h2 style="margin:0">🛠️ Admin Control Center</h2>
+      <div class="muted">Quick access to the main creator controls.</div>
+    </div>
+    <span class="pill">Admin</span>
+  </div>
+  <div class="grid" style="margin-top:12px">
+    <button class="btn" type="button" onclick="show('users')">👥 Manage Fans</button>
+    <button class="btn" type="button" onclick="show('pricing')">💬 Chat & Plans</button>
+    <button class="btn" type="button" onclick="show('posts')">🔒 Manage Posts</button>
+    <button class="btn" type="button" onclick="show('adminGifts')">🎁 Manage Gifts</button>
+    <button class="btn" type="button" onclick="show('adminTransactions')">💳 Transactions</button>
+    <button class="btn" type="button" onclick="show('settings')">⚙️ Admin Settings</button>
+  </div>
+</div>
+
+<div class="card">
+  <h2>📊 System Overview</h2>
+  <div class="grid">
+    <div class="stat"><b id="adminFanCount">0</b><div class="muted">Fans</div></div>
+    <div class="stat"><b id="adminPostCount">0</b><div class="muted">Posts</div></div>
+    <div class="stat"><b id="adminGiftCount">0</b><div class="muted">Gifts</div></div>
+    <div class="stat"><b id="adminPlanCount">0</b><div class="muted">Plans</div></div>
+  </div>
+</div>
+
 </section>
 
 <section id="pricing" class="page">
@@ -424,13 +525,43 @@ body[data-mode="creator"] #fanHistoryCard{display:none!important}
 <label class="muted">Price (₹)</label><input id="planPrice" type="number" min="0" step="1" placeholder="Enter any amount">
 <button class="btn full" onclick="addPlan()">+ Add Subscription Plan</button>
 </div>
-<div class="card"><h2>Active / Hidden Plans</h2><p class="muted">There are no subscription plans by default. Only plans created by Admin will be visible to fans.</p><div id="adminPlans"></div></div>
+<div class="card"><h2>Active / Hidden Plans</h2><p class="muted">There are no subscription plans by default. Only plans created by Admin will be visible to fans.</p>
+<div class="card" id="adminTransactionsManagement">
+  <div class="row">
+    <div>
+      <h2 style="margin:0">💳 Transactions & Earnings</h2>
+      <div class="muted">Review wallet transactions and creator earnings in one place.</div>
+    </div>
+    <button class="btn light" type="button" onclick="refreshAdminTransactions()">Refresh</button>
+  </div>
+  <div class="grid" style="margin-top:12px">
+    <div class="stat"><b id="adminTotalTransactions">0</b><div class="muted">Transactions</div></div>
+    <div class="stat"><b id="adminTotalEarnings">₹0</b><div class="muted">Recorded earnings</div></div>
+  </div>
+  <div id="adminTransactionsTable" style="margin-top:12px"></div>
+</div>
+<div id="adminPlans"></div></div>
 </section>
 
 <section id="adminTransactions" class="page">
 <div class="card">
 <h2>👑 Admin Transactions</h2>
 <p class="muted">Admin can view complete wallet, chat, post, subscription, and gift transaction records.</p>
+
+<div class="card" id="adminGiftManagement">
+  <div class="row">
+    <div>
+      <h2 style="margin:0">🎁 Gift Management</h2>
+      <div class="muted">Review available gifts and gift activity.</div>
+    </div>
+    <button class="btn light" type="button" onclick="refreshAdminGiftManagement()">Refresh</button>
+  </div>
+  <div class="grid" style="margin-top:12px">
+    <div class="stat"><b id="adminGiftCatalogCount">0</b><div class="muted">Available gifts</div></div>
+    <div class="stat"><b id="adminGiftActivityCount">0</b><div class="muted">Gift transactions</div></div>
+  </div>
+  <div id="adminGiftTable" style="margin-top:12px"></div>
+</div>
 <div id="adminTxList"></div>
 </div>
 </section>
@@ -440,7 +571,18 @@ body[data-mode="creator"] #fanHistoryCard{display:none!important}
 <input id="giftName" placeholder="Gift name" style="margin-top:8px">
 <input id="giftPrice" type="number" min="0" step="1" placeholder="Any amount ₹" style="margin-top:8px">
 <button class="btn full" onclick="addGift()">+ Add Gift</button>
-</div><div class="card"><h2>Gift Catalogue</h2><div id="adminGiftsList"></div></div></section>
+</div><div class="card"><h2>Gift Catalogue</h2>
+<div class="card" id="adminContentManagement">
+  <div class="row">
+    <div>
+      <h2 style="margin:0">🔒 Content Management</h2>
+      <div class="muted">Review and manage creator posts from one place.</div>
+    </div>
+    <button class="btn light" type="button" onclick="refreshAdminContentManagement()">Refresh</button>
+  </div>
+  <div id="adminContentTable" style="margin-top:12px"></div>
+</div>
+<div id="adminGiftsList"></div></div></section>
 
 <section id="posts" class="page">
 <div class="card" id="creatorPostFilters" style="margin-bottom:12px">
@@ -528,13 +670,52 @@ body[data-mode="creator"] #fanHistoryCard{display:none!important}
     <button class="btn" onclick="adminAttach('🎙️ Audio')">🎙️ Audio</button>
     <button class="btn" onclick="adminAttach('📎 File')">📎 File</button>
   </div>
-  <div class="note" style="margin-top:10px">Messages and media are saved in this private chat thread. Unread counts appear for new fan messages.</div>
+  
+<div class="card" id="adminFanManagement">
+  <div class="row">
+    <div>
+      <h2 style="margin:0">👥 Fan Management</h2>
+      <div class="muted">Review fan accounts and their current status.</div>
+    </div>
+    <button class="btn light" type="button" onclick="refreshAdminFanManagement()">Refresh</button>
+  </div>
+  <div id="adminFanTable" style="margin-top:12px"></div>
+</div>
+<div class="note" style="margin-top:10px">Messages and media are saved in this private chat thread. Unread counts appear for new fan messages.</div>
 </div>
 </section>
 <section id="users" class="page">
 <div class="card">
   <div class="row"><div><h2>👥 Fans</h2><div class="muted">Manage fan conversations and chat pricing</div></div><span class="pill">Admin</span></div>
   <div id="fanList"></div>
+</div>
+
+<div id="adminFansManagementCard" class="card" style="margin-top:12px">
+  <div class="row">
+    <div>
+      <b>Fan Management</b>
+      <div class="muted">View fan account details</div>
+    </div>
+    <button class="btn light" type="button" onclick="openFanManager()">Manage</button>
+  </div>
+  <div id="adminFanList" style="margin-top:10px"></div>
+<div id="adminFanAccountSections" style="margin-top:12px;display:none">
+  <div class="card">
+    <b>📊 Account Activity</b>
+    <div id="fanActivitySummary" class="muted" style="margin-top:7px"></div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <b>💰 Wallet / Transactions</b>
+    <div id="fanWalletSummary" class="muted" style="margin-top:7px"></div>
+    <div id="fanTransactionsList" style="margin-top:7px"></div>
+  </div>
+  <div class="card" style="margin-top:10px">
+    <b>📝 Posts / Purchases</b>
+    <div id="fanContentSummary" class="muted" style="margin-top:7px"></div>
+    <div id="fanPurchasesList" style="margin-top:7px"></div>
+  </div>
+</div>
+
 </div>
 </section>
 
@@ -951,7 +1132,29 @@ body[data-mode="creator"] #fanHistoryCard{display:none!important}
 </section>
 
 <section id="terms" class="page">
-  <div class="card">
+  
+<div class="card" id="adminSettingsControls">
+  <div class="row">
+    <div>
+      <h2 style="margin:0">⚙️ Admin Settings & Controls</h2>
+      <div class="muted">Control the creator's public status and core chat settings.</div>
+    </div>
+    <button class="btn light" type="button" onclick="refreshAdminSettingsControls()">Refresh</button>
+  </div>
+  <div class="grid" style="margin-top:12px">
+    <div class="card">
+      <b>Creator visibility</b>
+      <p class="muted">Choose the status fans see.</p>
+      <button class="btn" type="button" onclick="adminToggleCreatorStatus()" id="adminCreatorStatusBtn">Loading…</button>
+    </div>
+    <div class="card">
+      <b>Free Chat</b>
+      <p class="muted">Allow fans to start free chats.</p>
+      <button class="btn" type="button" onclick="adminToggleFreeChat()" id="adminFreeChatBtn">Loading…</button>
+    </div>
+  </div>
+</div>
+<div class="card">
     <h2>📜 Terms of Service</h2>
     <p class="muted" style="line-height:1.7">
       CreatorChat demo terms page. Add your platform's actual terms, refund rules,
@@ -1280,7 +1483,7 @@ const defaultPlans=[
 ['Yearly','12 Months',19999]
 ];
 const gifts=[['❤️','Heart',99],['🌹','Rose',199],['💕','Love',399],['💐','Flowers',599],['💎','Diamond',999],['🧸','Teddy',1499],['💖','Big Heart',2499],['🎁','Love Box',4999],['💝','Premium',7999],['💋','Kiss',9999],['👑','Royal',14999],['💎','Ultimate',19999]];
-let s=JSON.parse(localStorage.getItem('cc6')||'null')||{mode:'admin',balance:0,rate:29,free:false,member:'None',earn:0,orders:0,tx:[],posts:[],plans:[],planVersion:2,supportEmail:''};
+let s=JSON.parse(localStorage.getItem('cc6')||'null')||{mode:'fan',balance:0,rate:29,free:false,member:'None',earn:0,orders:0,tx:[],posts:[],plans:[],planVersion:2,supportEmail:''};
 if(typeof s.supportEmail!=='string')s.supportEmail='';
 if(!Array.isArray(s.notifications))s.notifications=[];
 if(!s.notificationPrefs)s.notificationPrefs={creator:true,posts:true,gifts:true,system:true};
@@ -1323,15 +1526,23 @@ function saveFanSettings(){let n=document.getElementById('fanSettingName').value
 function rechargeBonus(a){if(a>3000)return Math.floor(a*0.10);if(a===3000)return 300;if(a>=2000)return 150;if(a>=1500)return 100;if(a>=1000)return 50;return 0}
 function updateRechargeBonus(){let el=document.getElementById('rechargeBonus');if(!el)return;let a=Number(document.getElementById('rechargeAmount').value)||0;if(a<500){el.textContent='Minimum ₹500 · Maximum ₹10,000';return}if(a>10000){el.textContent='Maximum recharge ₹10,000';return}let b=rechargeBonus(a);el.textContent=`You pay ₹${a} + ₹${b} bonus = ₹${a+b} wallet credit`}
 function demoRecharge(){s.lowBalanceShown=false;let a=Number(document.getElementById('rechargeAmount').value),b=rechargeBonus(a);if(!Number.isFinite(a)||a<500)return alert('Minimum recharge is ₹500.');if(a>10000)return alert('Maximum recharge is ₹10,000 per transaction.');s.balance+=a+b;s.tx.push({d:`Wallet recharge ₹${a} + ₹${b} bonus (Demo)`,a:a+b,ts:Date.now()});document.getElementById('rechargeAmount').value='';updateRechargeBonus();save();alert(`₹${a} + ₹${b} bonus = ₹${a+b} wallet credit (demo).`)}
-function toggleCreatorStatus(){s.creatorOnline=!s.creatorOnline;save();}function setMode(mode){
+function toggleCreatorStatus(){s.creatorOnline=!s.creatorOnline;save();}
+function isAdminAuthenticated(){
+  return sessionStorage.getItem('creatorchat_admin_unlocked')==='1';
+}
+function setMode(mode){
   if(mode!=='admin'&&mode!=='fan')return;
   s.mode=mode;
+  try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
   document.body.setAttribute('data-mode',mode);
-  localStorage.setItem('cc6',JSON.stringify(s));
+  nav();
   show(mode==='admin'?'admin':'home');
 }
-function toggleMode(){setMode(s.mode==='admin'?'fan':'admin')}
+function toggleMode(){
+  setMode(s.mode==='admin'?'fan':'admin');
+}
 function show(id){
+  document.body.setAttribute('data-mode',s.mode);
       const adminOnlyPages=new Set(['admin','pricing','adminTransactions','adminGifts','posts','adminChat','users','ledger','orders','orderHistory','payout','insights','notifications','alerts']);
       if(s.mode!=='admin' && adminOnlyPages.has(id)){ id='home_duplicate_1'; }
       let target=document.getElementById(id);
@@ -1591,6 +1802,19 @@ function deleteFaq(index){
   if(!(s.mode==='admin'||s.mode==='creator'))return;
   if(!confirm('Delete this FAQ?'))return;
   ensureFaqs();s.faqs.splice(index,1);save();renderFaq();
+}
+
+
+function refreshAdminControlCenter(){
+  const fans = Array.isArray(s.fans) ? s.fans.length : 0;
+  const posts = Array.isArray(s.posts) ? s.posts.length : 0;
+  const gifts = Array.isArray(s.gifts) ? s.gifts.filter(g => g && g.visible !== false).length : 0;
+  const plans = Array.isArray(s.plans) ? s.plans.filter(p => p && p.visible !== false).length : 0;
+  const setText = (id, value) => { const el=document.getElementById(id); if(el) el.textContent=String(value); };
+  setText('adminFanCount', fans);
+  setText('adminPostCount', posts);
+  setText('adminGiftCount', gifts);
+  setText('adminPlanCount', plans);
 }
 
 function renderAdminSupport(){
@@ -2355,7 +2579,9 @@ function markAllNotificationsRead(){
   save();renderNotifications();
 }
 
-function render(){hideFanChatPrices();renderFanActivity();renderMySubscription();renderNotifications();renderFanNotifications();renderInsights();renderFanChat();
+function render(){
+  refreshAdminDashboard();
+  refreshAdminControlCenter();hideFanChatPrices();renderFanActivity();renderMySubscription();renderNotifications();renderFanNotifications();renderInsights();renderFanChat();
 // Role guard: payout/creator analytics/admin payout controls must never render in Fan mode.
 ['creatorPayoutCard','creatorAnalyticsCard','adminPayoutCard'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.setProperty('display',s.mode==='admin'?'block':'none','important');});
 renderTransactions();nav();
@@ -3685,6 +3911,158 @@ function escapeHtml(v){
   return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+
+function refreshAdminFanManagement(){
+  const host=document.getElementById('adminFanTable');
+  if(!host)return;
+  const fans=Array.isArray(s.fans)?s.fans:[];
+  if(!fans.length){
+    host.innerHTML='<div class="muted">No fan records available yet.</div>';
+    return;
+  }
+  host.innerHTML='<div style="overflow:auto"><table style="width:100%"><thead><tr><th>Name</th><th>Contact</th><th>Status</th></tr></thead><tbody>'+
+    fans.map(f=>{
+      const name=(f&&f.name)||'Unnamed Fan';
+      const contact=(f&&((f.email)||(f.mobile)||(f.contact)))||'—';
+      const status=(f&&f.blocked)?'Blocked':'Active';
+      return `<tr><td>${name}</td><td>${contact}</td><td>${status}</td></tr>`;
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+
+function refreshAdminContentManagement(){
+  const host=document.getElementById('adminContentTable');
+  if(!host)return;
+  const posts=Array.isArray(s.posts)?s.posts:[];
+  if(!posts.length){
+    host.innerHTML='<div class="muted">No creator posts available yet.</div>';
+    return;
+  }
+  host.innerHTML='<div style="overflow:auto"><table style="width:100%"><thead><tr><th>Title</th><th>Price</th><th>Status</th></tr></thead><tbody>'+
+    posts.map(p=>{
+      const title=(p&&((p.title)||(p.name)))||'Untitled Post';
+      const price=(p&&p.price!=null)?`₹${p.price}`:'Free';
+      const status=(p&&p.published===false)?'Draft':'Published';
+      return `<tr><td>${title}</td><td>${price}</td><td>${status}</td></tr>`;
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+
+function refreshAdminTransactions(){
+  const host=document.getElementById('adminTransactionsTable');
+  if(!host)return;
+  const tx=Array.isArray(s.tx)?s.tx:[];
+  let earnings=0;
+  tx.forEach(t=>{ const a=Number(t&&t.a)||0; if(a>0) earnings+=a; });
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
+  setText('adminTotalTransactions',tx.length);
+  setText('adminTotalEarnings','₹'+earnings);
+  if(!tx.length){
+    host.innerHTML='<div class="muted">No transactions recorded yet.</div>';
+    return;
+  }
+  const rows=tx.slice().reverse().map(t=>{
+    const desc=(t&&t.d)||'Transaction';
+    const amount=Number(t&&t.a)||0;
+    const when=t&&t.ts?new Date(t.ts).toLocaleString():'—';
+    return `<tr><td>${desc}</td><td>₹${amount}</td><td>${when}</td></tr>`;
+  }).join('');
+  host.innerHTML='<div style="overflow:auto"><table style="width:100%"><thead><tr><th>Description</th><th>Amount</th><th>Date</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+
+
+function refreshAdminGiftManagement(){
+  const host=document.getElementById('adminGiftTable');
+  if(!host)return;
+  const gifts=Array.isArray(s.gifts)?s.gifts:[];
+  const tx=Array.isArray(s.tx)?s.tx:[];
+  const giftTx=tx.filter(t=>t && /gift/i.test(String(t.d||'')));
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
+  setText('adminGiftCatalogCount',gifts.filter(g=>g&&g.visible!==false).length);
+  setText('adminGiftActivityCount',giftTx.length);
+  if(!gifts.length){
+    host.innerHTML='<div class="muted">No gifts are configured yet.</div>';
+    return;
+  }
+  host.innerHTML='<div style="overflow:auto"><table style="width:100%"><thead><tr><th>Gift</th><th>Value</th><th>Status</th></tr></thead><tbody>'+
+    gifts.map(g=>{
+      const name=(g&&((g.name)||(g.title)))||'Unnamed Gift';
+      const value=(g&&g.price!=null)?`₹${g.price}`:((g&&g.value!=null)?`₹${g.value}`:'—');
+      const status=(g&&g.visible===false)?'Hidden':'Active';
+      return `<tr><td>${name}</td><td>${value}</td><td>${status}</td></tr>`;
+    }).join('')+
+    '</tbody></table></div>';
+}
+
+
+function refreshAdminSettingsControls(){
+  const status=document.getElementById('adminCreatorStatusBtn');
+  if(status) status.textContent='Creator visible as: '+(s.creatorOnline?'Online':'Offline');
+  const free=document.getElementById('adminFreeChatBtn');
+  if(free) free.textContent='Free Chat: '+(s.freeChat?'ON':'OFF');
+}
+function adminToggleCreatorStatus(){
+  if(typeof toggleCreatorStatus==='function') toggleCreatorStatus();
+  refreshAdminSettingsControls();
+}
+function adminToggleFreeChat(){
+  if(typeof toggleFree==='function') toggleFree();
+  refreshAdminSettingsControls();
+}
+
+
+function refreshAdminDashboard(){
+  const fans=Array.isArray(s.fans)?s.fans.length:0;
+  const posts=Array.isArray(s.posts)?s.posts.length:0;
+  const gifts=Array.isArray(s.gifts)?s.gifts.filter(g=>g&&g.visible!==false).length:0;
+  const tx=Array.isArray(s.tx)?s.tx.length:0;
+  const setText=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=String(v);};
+  setText('dashFans',fans);
+  setText('dashPosts',posts);
+  setText('dashGifts',gifts);
+  setText('dashTransactions',tx);
+  setText('adminLiveStatus',s.creatorOnline?'Online':'Offline');
+}
+
+
+(function(){
+  const ADMIN_SESSION_KEY='creatorchat_admin_unlocked';
+  const ADMIN_PASSCODE='CHANGE_ME_BEFORE_PRODUCTION';
+
+  function setAdminGate(unlocked){
+    const status=document.getElementById('adminGateStatus');
+    const box=document.getElementById('adminGateBox');
+    if(status) status.textContent=unlocked?'Unlocked':'Locked';
+    if(box && unlocked){
+      box.innerHTML='<div class="muted">Admin tools are unlocked for this browser session.</div><button class="btn light" type="button" onclick="lockAdminTools()" style="margin-top:8px">Lock Admin Tools</button>';
+    }
+  }
+  window.unlockAdminTools=function(){
+    const input=document.getElementById('adminGateInput');
+    const msg=document.getElementById('adminGateMessage');
+    if(!input)return;
+    if(input.value===ADMIN_PASSCODE){
+      sessionStorage.setItem(ADMIN_SESSION_KEY,'1');
+      setAdminGate(true);
+    }else if(msg){
+      msg.textContent='Incorrect passcode.';
+    }
+  };
+  window.lockAdminTools=function(){
+    sessionStorage.removeItem(ADMIN_SESSION_KEY);
+    location.reload();
+  };
+  window.refreshAdminAccessControl=function(){
+    setAdminGate(sessionStorage.getItem(ADMIN_SESSION_KEY)==='1');
+  };
+  document.addEventListener('DOMContentLoaded',window.refreshAdminAccessControl);
+})();
+
+
+/* Removed obsolete placeholder admin auth; Step 210 auth below is authoritative. */
+
 </script>
 
 
@@ -3752,9 +4130,322 @@ try{
   document.body.setAttribute('data-mode',String(s.mode||'fan'));
   enforceStableRoleVisibility();
   renderStableFanRechargeHistory();
+  try{syncAdminOnlyUI();}catch(e){}
 }catch(e){}
 </script>
 <script>
 try{ensurePayoutState();enforcePayoutRoleVisibility();loadPayoutDetails();}catch(e){}
 </script>
+
+
+<div id="adminLoginPanel" class="modal" style="display:none!important;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:20000;padding:18px;box-sizing:border-box">
+  <div class="modal-card" style="max-width:420px;width:100%;margin:12vh auto;background:#fff;border-radius:18px;padding:20px;box-shadow:0 15px 50px rgba(0,0,0,.25)">
+    <div class="row">
+      <div>
+        <h2 style="margin:0">🔐 Admin Login</h2>
+        <div class="muted" style="margin-top:5px">Admin dashboard is protected.</div>
+      </div>
+      <button type="button" class="btn light" onclick="closeAdminLogin()">✕</button>
+    </div>
+    <input id="adminLoginEmail" type="email" placeholder="Admin email" autocomplete="username" style="margin-top:14px">
+    <input id="adminLoginPassword" type="password" placeholder="Admin passcode" autocomplete="current-password" style="margin-top:8px">
+    <button class="btn full" type="button" onclick="adminLogin()" style="margin-top:10px">Sign In</button>
+    <div class="muted" id="adminLoginMessage" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<div id="adminModeGate" class="modal" style="display:none!important;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:21000;padding:18px;box-sizing:border-box">
+  <div class="modal-card" style="max-width:420px;width:100%;margin:12vh auto;background:#fff;border-radius:18px;padding:20px;box-shadow:0 15px 50px rgba(0,0,0,.25)">
+    <div class="row">
+      <div>
+        <h2 style="margin:0">🔐 Admin Access</h2>
+        <div class="muted" style="margin-top:5px">Enter the admin access passcode to switch modes.</div>
+      </div>
+      <button type="button" class="btn light" onclick="closeAdminModeGate()">✕</button>
+    </div>
+    <input id="adminModeGateInput" type="password" inputmode="numeric" placeholder="Admin access passcode" autocomplete="off" style="margin-top:14px">
+    <button class="btn full" type="button" onclick="unlockAdminMode()" style="margin-top:10px">Switch to Admin Mode</button>
+    <div class="muted" id="adminModeGateMessage" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script id="step210-admin-mode-gate">
+(function(){
+  const PASSCODE='2580';
+  window.openAdminModeGate=function(){
+    const m=document.getElementById('adminModeGate');
+    const i=document.getElementById('adminModeGateInput');
+    const msg=document.getElementById('adminModeGateMessage');
+    if(m)m.style.setProperty('display','none','important');
+    if(i){i.value='';setTimeout(()=>i.focus(),50);}
+    if(msg)msg.textContent='';
+  };
+  window.closeAdminModeGate=function(){
+    const m=document.getElementById('adminModeGate');
+    if(m)m.style.setProperty('display','none','important');
+  };
+  window.unlockAdminMode=function(){
+    const i=document.getElementById('adminModeGateInput');
+    const msg=document.getElementById('adminModeGateMessage');
+    if(!i || i.value!==PASSCODE){if(msg)msg.textContent='Incorrect admin access passcode.';return;}
+    sessionStorage.setItem('creatorchat_admin_unlocked','1');
+    closeAdminModeGate();
+    s.mode='admin';
+    document.body.setAttribute('data-mode','admin');
+    localStorage.setItem('cc6',JSON.stringify(s));
+    if(typeof nav==='function')nav();
+    if(typeof show==='function')show('admin');
+  };
+})();
+</script>
+
+
+
+
+
+
+
+
+
+
+<script id="step210-clean-init">
+try{
+  if(s.mode!=='admin'&&s.mode!=='fan')s.mode='fan';
+  document.body.setAttribute('data-mode',s.mode);
+}catch(e){}
+</script>
+
+<script id="step212-safe-fan-manager">
+(function(){
+  function esc(v){
+    return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+
+  window.openFanManager=function(){
+    if(String(s.mode||'fan')!=='admin')return;
+    var box=document.getElementById('adminFanList');
+    if(!box)return;
+    var fans=Array.isArray(s.fans)?s.fans:[];
+    if(!fans.length){
+      box.innerHTML='<div class="muted">No fan accounts found.</div>';
+      return;
+    }
+    box.innerHTML=fans.map(function(f,i){
+      return '<div class="card" style="margin-top:8px"><div class="row">'+
+        '<div><b>'+esc(f.name||f.username||('Fan '+(i+1)))+'</b>'+
+        '<div class="muted">'+esc(f.email||'')+'</div></div>'+
+        '<button class="btn light" type="button" onclick="renderFanAdminActions('+i+')">View</button>'+
+        '</div></div>';
+    }).join('');
+  };
+
+  window.viewFanDetails=function(index){
+    if(String(s.mode||'fan')!=='admin')return;
+    var fans=Array.isArray(s.fans)?s.fans:[];
+    var f=fans[index];
+    if(!f)return;
+    var box=document.getElementById('adminFanList');
+    if(!box)return;
+    box.innerHTML='<div class="card" style="margin-top:8px">'+
+      '<b>'+esc(f.name||f.username||('Fan '+(index+1)))+'</b>'+
+      '<div class="muted" style="margin-top:6px">Email: '+esc(f.email||'Not provided')+'</div>'+
+      '<div class="muted">Mobile: '+esc(f.phone||f.mobile||'Not provided')+'</div>'+
+      '<div class="muted">Status: '+esc(f.status||'Active')+'</div>'+
+      '<div class="muted">Balance: '+esc(f.balance==null?'0':f.balance)+'</div>'+
+      '<div class="muted" style="margin-top:8px">Password and OTP are never displayed.</div>'+
+      '<button class="btn light" style="margin-top:10px" type="button" onclick="openFanManager()">← Back</button>'+
+      '</div>';
+  };
+})();
+</script>
+
+
+<script id="step213-fan-actions">
+(function(){
+  function esc(v){
+    return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  function isAdmin(){ return String(s.mode||'fan')==='admin'; }
+
+  window.renderFanAdminActions=function(index){
+    if(!isAdmin()) return;
+    var fans=Array.isArray(s.fans)?s.fans:[];
+    var f=fans[index];
+    var box=document.getElementById('adminFanList');
+    if(!f||!box)return;
+
+    var status=f.status||'Active';
+    var blocked=String(status).toLowerCase()==='blocked';
+    var suspended=String(status).toLowerCase()==='suspended';
+
+    box.innerHTML=
+      '<div class="card" style="margin-top:8px">'+
+      '<b>'+esc(f.name||f.username||('Fan '+(index+1)))+'</b>'+
+      '<div class="muted" style="margin-top:6px">Email: '+esc(f.email||'Not provided')+'</div>'+
+      '<div class="muted">Mobile: '+esc(f.phone||f.mobile||'Not provided')+'</div>'+
+      '<div class="muted">Status: '+esc(status)+'</div>'+
+      '<div class="muted">Balance: '+esc(f.balance==null?'0':f.balance)+'</div>'+
+      '<div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">'+
+      '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',\\''+(blocked?'Active':'Blocked')+'\\')">'+(blocked?'Unblock':'Block')+'</button>'+
+      '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',\\''+(suspended?'Active':'Suspended')+'\\')">'+(suspended?'Unsuspend':'Suspend')+'</button>'+
+      '<button class="btn light" type="button" onclick="viewFanAsAdmin('+index+')">View as Fan</button>'+
+      '<button class="btn light" type="button" onclick="openFanManager()">← Back</button>'+
+      '</div></div>';
+  };
+
+  window.setFanAdminStatus=function(index,newStatus){
+    if(!isAdmin())return;
+    var fans=Array.isArray(s.fans)?s.fans:[];
+    if(!fans[index])return;
+    fans[index].status=newStatus;
+    try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
+    renderFanAdminActions(index);
+  };
+
+  window.viewFanAsAdmin=function(index){
+    if(!isAdmin())return;
+    var fans=Array.isArray(s.fans)?s.fans:[];
+    var f=fans[index];
+    if(!f)return;
+    alert('Fan Preview\n\nViewing the fan experience for '+(f.name||f.username||'this fan')+'.\nNo password or OTP is used.');
+  };
+})();
+</script>
+
+
+<script id="predeploy-fan-management">
+(function(){
+  function esc(v){
+    return String(v==null?'':v).replace(/[&<>"']/g,function(c){
+      return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+    });
+  }
+  function admin(){return String(s.mode||'fan')==='admin';}
+  function arr(v){return Array.isArray(v)?v:[];}
+
+  function row(label,value){
+    return '<div style="display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px solid rgba(0,0,0,.06)">'+
+      '<span>'+esc(label)+'</span><b>'+esc(value)+'</b></div>';
+  }
+
+  window.renderFanAccountSections=function(f){
+    if(!admin())return;
+    var wrap=document.getElementById('adminFanAccountSections');
+    if(!wrap)return;
+    wrap.style.display='block';
+
+    var activity=arr(f.activity||f.accountActivity||f.activities);
+    var tx=arr(f.transactions||f.walletTransactions);
+    var posts=arr(f.posts||f.postHistory);
+    var purchases=arr(f.purchases||f.orders||f.purchaseHistory);
+
+    document.getElementById('fanActivitySummary').innerHTML =
+      row('Activity records', activity.length || 'Not available')+
+      row('Account status', f.status||'Active')+
+      row('Joined', f.joinedAt||f.createdAt||'Not available');
+
+    document.getElementById('fanWalletSummary').innerHTML =
+      row('Wallet balance', f.balance==null?'Not available':f.balance)+
+      row('Transaction records', tx.length || 'Not available');
+
+    document.getElementById('fanTransactionsList').innerHTML =
+      tx.length ? tx.slice(0,10).map(function(t){
+        return '<div class="muted" style="padding:5px 0">'+
+          esc(t.date||t.createdAt||'')+' · '+esc(t.type||'Transaction')+' · '+esc(t.amount==null?'':t.amount)+'</div>';
+      }).join('') : '<div class="muted">No transaction data available in the current account record.</div>';
+
+    document.getElementById('fanContentSummary').innerHTML =
+      row('Posts', posts.length || 'Not available')+
+      row('Purchases', purchases.length || 'Not available');
+
+    document.getElementById('fanPurchasesList').innerHTML =
+      purchases.length ? purchases.slice(0,10).map(function(p){
+        return '<div class="muted" style="padding:5px 0">'+
+          esc(p.date||p.createdAt||'')+' · '+esc(p.title||p.name||p.item||'Purchase')+
+          (p.amount!=null?' · '+esc(p.amount):'')+'</div>';
+      }).join('') : '<div class="muted">No purchase data available in the current account record.</div>';
+  };
+
+  // Wrap the Step 213 action renderer rather than replacing it.
+  var previousRender=window.renderFanAdminActions;
+  if(typeof previousRender==='function'){
+    window.renderFanAdminActions=function(index){
+      previousRender(index);
+      var fans=arr(s.fans), f=fans[index];
+      if(f)renderFanAccountSections(f);
+    };
+  }
+
+  var previousManager=window.openFanManager;
+  if(typeof previousManager==='function'){
+    window.openFanManager=function(){
+      previousManager();
+      var wrap=document.getElementById('adminFanAccountSections');
+      if(wrap)wrap.style.display='none';
+    };
+  }
+
+  // Never expose the management card/sections in Fan mode.
+  function enforceRole(){
+    var card=document.getElementById('adminFansManagementCard');
+    var sections=document.getElementById('adminFanAccountSections');
+    var on=admin();
+    if(card)card.style.display=on?'block':'none';
+    if(sections && !on)sections.style.display='none';
+  }
+  enforceRole();
+  setInterval(enforceRole,1000);
+})();
+</script>
+
+
+<script id="step214-audit">
+(function(){
+  window.CreatorChatStep214Audit={
+    checks:{},
+    run:function(){
+      var c=this.checks, d=document;
+      c.body=!!d.body;
+      c.state=typeof window.s==='object' && window.s!==null;
+      c.fansCard=!!d.getElementById('adminFansManagementCard');
+      c.fanList=!!d.getElementById('adminFanList');
+      c.accountSections=!!d.getElementById('adminFanAccountSections');
+      c.renderAction=typeof window.renderFanAdminActions==='function';
+      c.statusAction=typeof window.setFanAdminStatus==='function';
+      c.viewAsFan=typeof window.viewFanAsAdmin==='function';
+      c.usersOnce=d.querySelectorAll('#users').length===1;
+      c.fanListOnce=d.querySelectorAll('#adminFanList').length===1;
+      c.cardOnce=d.querySelectorAll('#adminFansManagementCard').length===1;
+      return Object.keys(c).every(function(k){return c[k]===true;});
+    }
+  };
+  try{window.CreatorChatStep214Audit.run();}catch(e){window.CreatorChatStep214AuditError=String(e);}
+})();
+</script>
+
+
+<script id="step215-deploy-audit">
+(function(){
+  window.CreatorChatDeploymentAudit=function(){
+    var issues=[], d=document, s=window.s;
+    if(!d.body) issues.push('document body missing');
+    if(typeof s!=='object'||!s) issues.push('application state missing');
+    if(d.querySelectorAll('#users').length!==1) issues.push('Fans page duplication/missing');
+    if(d.querySelectorAll('#adminFansManagementCard').length!==1) issues.push('Fan Management card duplication/missing');
+    if(d.querySelectorAll('#adminFanList').length!==1) issues.push('Fan list duplication/missing');
+    if(typeof window.renderFanAdminActions!=='function') issues.push('Fan action handler missing');
+    if(typeof window.setFanAdminStatus!=='function') issues.push('Status handler missing');
+    if(typeof window.viewFanAsAdmin!=='function') issues.push('View-as-Fan handler missing');
+    if(typeof window.openFanManager!=='function') issues.push('Fan manager opener missing');
+    if(/f\.(password|otp)\b/.test(d.documentElement.innerHTML)) issues.push('password/OTP renderer reference detected');
+    return {ready:issues.length===0,issues:issues};
+  };
+  try{window.CreatorChatDeploymentAudit();}catch(e){window.CreatorChatDeploymentAuditError=String(e);}
+})();
+</script>
+
 </body></html>
