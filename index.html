@@ -1758,15 +1758,12 @@ function toggleHelpSupport(){
   }
 }
 function saveSupportEmail(){
-  const isAdminMode=(s.mode==='admin'||s.mode==='creator');
-  const e=isAdminMode?document.getElementById('adminSupportEmail'):document.getElementById('supportEmail');
-  const v=e?e.value.trim():'';
-  if(!v||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Enter a valid support email.');return;}
+  if(!(s.mode==='admin'||s.mode==='creator'))return;
+  const e=document.getElementById('adminSupportEmail'),v=e?e.value.trim():'';
+  if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Enter a valid email.');return;}
   s.supportEmail=v;save();
-  ['supportEmailDisplay','supportEmailPreview'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=v;});
-  const main=document.getElementById('supportEmail');if(main)main.value=v;
-  const admin=document.getElementById('adminSupportEmail');if(admin)admin.value=v;
-  if(typeof addAdminAudit==='function' && isAdminMode)addAdminAudit('Support email updated',v);
+  const d=document.getElementById('supportEmailDisplay');if(d)d.textContent=getSupportEmail();
+  if(typeof addAdminAudit==='function')addAdminAudit('Support email updated',v||'Support email removed');
 }
 
 
@@ -2600,6 +2597,12 @@ function toggleNotifications(){
   c.style.setProperty('display',open?'none':'block','important');
   if(!open)renderNotifications();
 }
+function markAllNotificationsRead(){
+  ensureNotifications();
+  s.notifications.forEach(n=>n.read=true);
+  save();renderNotifications();
+}
+
 function render(){
   refreshAdminDashboard();
   refreshAdminControlCenter();hideFanChatPrices();renderFanActivity();renderMySubscription();renderNotifications();renderFanNotifications();renderInsights();renderFanChat();
@@ -3028,9 +3031,6 @@ function markNotificationRead(id){
   ensureStep108to127();
   const n=s.notifications.find(x=>String(x.id)===String(id));if(!n)return;
   n.read=true;save();
-}
-function markAllNotificationsRead(){
-  ensureStep108to127();s.notifications.forEach(n=>{if(n)n.read=true;});save();
 }
 function removeOldNotifications(days){
   ensureStep108to127();

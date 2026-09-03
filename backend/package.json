@@ -1,10 +1,10 @@
 {
   "name": "creatorchat-production-backend",
   "private": true,
-  "version": "249.4.2",
+  "version": "249.4.3",
   "type": "module",
   "engines": {
-    "node": "20.x"
+    "node": "22.x"
   },
   "dependencies": {
     "pg": "^8.16.3"
