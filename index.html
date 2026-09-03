@@ -1758,12 +1758,15 @@ function toggleHelpSupport(){
   }
 }
 function saveSupportEmail(){
-  if(!(s.mode==='admin'||s.mode==='creator'))return;
-  const e=document.getElementById('adminSupportEmail'),v=e?e.value.trim():'';
-  if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Enter a valid email.');return;}
+  const isAdminMode=(s.mode==='admin'||s.mode==='creator');
+  const e=isAdminMode?document.getElementById('adminSupportEmail'):document.getElementById('supportEmail');
+  const v=e?e.value.trim():'';
+  if(!v||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Enter a valid support email.');return;}
   s.supportEmail=v;save();
-  const d=document.getElementById('supportEmailDisplay');if(d)d.textContent=getSupportEmail();
-  if(typeof addAdminAudit==='function')addAdminAudit('Support email updated',v||'Support email removed');
+  ['supportEmailDisplay','supportEmailPreview'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=v;});
+  const main=document.getElementById('supportEmail');if(main)main.value=v;
+  const admin=document.getElementById('adminSupportEmail');if(admin)admin.value=v;
+  if(typeof addAdminAudit==='function' && isAdminMode)addAdminAudit('Support email updated',v);
 }
 
 
@@ -1873,11 +1876,6 @@ function logoutCurrentUser(){
   location.reload();
 }
 
-function renderNotifications(){
-  let box=document.getElementById('notificationList');if(!box)return;
-  let notes=Array.isArray(s.notifications)?s.notifications:[];
-  box.innerHTML=notes.length?notes.map(n=>`<div class="row" style="padding:12px 0;border-bottom:1px solid #eee"><span style="font-size:22px">${n.icon||'🔔'}</span><div style="flex:1;min-width:0"><b>${n.title}</b><div class="muted">${n.text}</div><small class="muted">${n.ts?new Date(n.ts).toLocaleString('en-IN'):''}</small></div></div>`).join(''):'<div class="muted">No notifications yet.</div>';
-}
 function renderFanNotifications(){
   let box=document.getElementById('fanNotificationList');if(!box)return;
   let notes=Array.isArray(s.notifications)?s.notifications:[];
@@ -2161,7 +2159,6 @@ function renderCreatorProfileFields(){
   let a=document.getElementById('creatorPicPreview'); if(a)a.innerHTML=p.pic?'<img src="'+p.pic+'" style="max-width:100%;max-height:160px;border-radius:14px;object-fit:cover">':'';
   let b=document.getElementById('creatorCoverPreview'); if(b)b.innerHTML=p.cover?'<img src="'+p.cover+'" style="width:100%;max-height:160px;border-radius:14px;object-fit:cover">':'';
 }
-function saveSupportEmail(){let e=document.getElementById('supportEmail').value.trim();if(!e||!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid support email address.');s.supportEmail=e;save();alert('Support email saved.')}
 function sendSupport(){let e=s.supportEmail,m=document.getElementById('supportMessage').value.trim();if(!e)return alert('The admin has not set a support email yet.');if(!m)return alert('Enter a message.');window.location.href='mailto:'+e+'?subject=CreatorChat%20Support&body='+encodeURIComponent(m)}
 function setRate(v){s.rate=Number(v);save()}
 function togglePostAccess(){let sub=document.getElementById('postAccess').value==='subscription';document.getElementById('postPaidBox').style.display=sub?'none':'block';document.getElementById('postSubBox').style.display=sub?'block':'none';renderPlanSelect()}
@@ -2603,12 +2600,6 @@ function toggleNotifications(){
   c.style.setProperty('display',open?'none':'block','important');
   if(!open)renderNotifications();
 }
-function markAllNotificationsRead(){
-  ensureNotifications();
-  s.notifications.forEach(n=>n.read=true);
-  save();renderNotifications();
-}
-
 function render(){
   refreshAdminDashboard();
   refreshAdminControlCenter();hideFanChatPrices();renderFanActivity();renderMySubscription();renderNotifications();renderFanNotifications();renderInsights();renderFanChat();
