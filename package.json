@@ -3,9 +3,6 @@
   "private": true,
   "version": "249.4.4",
   "type": "module",
-  "engines": {
-    "node": "22.x"
-  },
   "dependencies": {
     "pg": "^8.16.3"
   }
