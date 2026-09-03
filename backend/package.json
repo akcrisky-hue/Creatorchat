@@ -1,7 +1,7 @@
 {
   "name": "creatorchat-production-backend",
   "private": true,
-  "version": "249.4.3",
+  "version": "249.4.4",
   "type": "module",
   "engines": {
     "node": "22.x"
