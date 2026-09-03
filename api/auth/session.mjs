@@ -1,2 +1,0 @@
-import { json, session, requestId } from '../../lib.mjs';
-export default async function handler(req,res){const rid=requestId(req);if(req.method!=='GET')return json(res,405,{error:'Method not allowed'},rid);try{const s=session(req);if(!s)return json(res,401,{authenticated:false},rid);return json(res,200,{authenticated:true,user:{id:s.id,role:s.role,email:s.email,name:s.name}},rid);}catch{return json(res,500,{error:'Server configuration error'},rid);}}
