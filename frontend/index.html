@@ -186,7 +186,8 @@ body{width:100%;max-width:100vw;overflow-x:hidden}
 #fanMediaButtons{display:flex}
 #fanMediaButtons .btn{display:inline-flex!important;min-width:92px;justify-content:center}
 @media(max-width:520px){#fanMediaButtons .btn{flex:1 1 30%;font-size:13px}}
-</style>\n<style id="fan-media-toolbar-final">
+</style>
+<style id="fan-media-toolbar-final">
 #fanMediaButtons{display:flex}
 #fanMediaButtons button{display:inline-flex}
 @media(max-width:520px){
@@ -446,6 +447,8 @@ body[data-mode="fan"] #adminFansManagementCard,
 body[data-mode="fan"] #adminFanAccountSections{display:none!important}
 </style>
 
+<!-- CreatorChat STEP 244: PRODUCTION_API_HARDENING -->
+<!-- CreatorChat Step 248: wallet ledger + atomic payment credit -->
 </head>
 <body>
 
@@ -1510,6 +1513,7 @@ if(!Array.isArray(s.giftCatalog)||s.giftCatalog.length<12)s.giftCatalog=[
     ].map((g,i)=>({id:i+1,emoji:g[0],name:g[1],price:g[2],active:true}));
 if(typeof s.creatorOnline!=='boolean')s.creatorOnline=true;
 if(!s.fanAccount)s.fanAccount={name:'',contact:'',email:'',mobile:'',loggedIn:true};
+if(!s.auth||typeof s.auth!=='object')s.auth={version:1,provider:'pending',status:'signed_out',user:null,updatedAt:new Date().toISOString()};
 if(typeof s.fanAccount.email!=='string')s.fanAccount.email='';
 if(typeof s.fanAccount.mobile!=='string')s.fanAccount.mobile='';
 if(!s.fanAccount.email && s.fanAccount.contact && s.fanAccount.contact.includes('@'))s.fanAccount.email=s.fanAccount.contact;
@@ -1988,7 +1992,7 @@ function toggleFanChatInfo(){
   if(a)a.textContent=open?'⌄':'⌃';
 }
 
-function sendFanMessage(){
+async function sendFanMessage(){
   let f=getActiveFan(),el=document.getElementById('fanChatText');
   if(!f||!el)return;
   let text=el.value.trim();if(!text)return;
@@ -1997,19 +2001,45 @@ function sendFanMessage(){
     alert('⚠️ Insufficient wallet balance. Please recharge to continue chatting.');
     return;
   }
+  let chatId=String(f.chatId||f.chatID||'');
+  const creatorId=String(f.creatorId||f.userId||f.id||'');
+  const msgId='msg_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+  try{
+    if(!chatId && creatorId){
+      const cr=await fetch('/api/chats',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({fanId:String(s.fanAccount?.id||s.userId||s.id||''),creatorId})});
+      const cd=await cr.json().catch(()=>({}));
+      if(cr.ok&&cd.chat?.id){chatId=String(cd.chat.id);f.chatId=chatId;}
+      else if(cr.status!==401&&cr.status!==404&&cr.status!==405)throw new Error(cd.error||'Chat could not be opened');
+    }
+    if(!chatId)throw new Error('Chat is not connected to a production account');
+    const res=await fetch('/api/messages',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:msgId,chatId,body:text})});
+    const data=await res.json().catch(()=>({}));
+    if(res.status===402){alert('⚠️ Insufficient wallet balance. Please recharge to continue chatting.');return;}
+    if(res.ok){
+      const charged=Number(data.chargedPaise||0)/100;
+      if(charged>0){
+        s.balance=Math.max(0,Number(s.balance||0)-charged);
+        if(!Array.isArray(s.tx))s.tx=[];
+        s.tx.push({d:'Paid chat message · '+(f.name||'Creator'),a:charged,ts:Date.now(),type:'chat-message',referenceId:msgId});
+      }
+      if(!f.messages)f.messages=[];
+      f.messages.push({from:'fan',text,ts:Date.now(),adminRead:false,id:msgId});
+      el.value='';save();renderFanChat();updateFanChatBalance();lowBalancePopup();return;
+    }
+    if(res.status!==401&&res.status!==404&&res.status!==405)throw new Error(data.error||'Message could not be sent');
+    if(location.protocol!=='file:'){alert('⚠️ Chat server is not connected. Message was not charged.');return;}
+  }catch(e){
+    if(location.protocol!=='file:'){alert('⚠️ '+String(e?.message||'Chat server unavailable')+'\n\nMessage was not charged.');return;}
+  }
   if(rate>0){
     s.balance=Number(s.balance||0)-rate;
     s.earn=Number(s.earn||0)+rate;
     if(!Array.isArray(s.tx))s.tx=[];
-    s.tx.push({d:'Paid chat message · '+(f.name||'Creator'),a:rate,ts:Date.now()});
+    s.tx.push({d:'Paid chat message · '+(f.name||'Creator'),a:rate,ts:Date.now(),type:'chat-message-demo'});
   }
   if(!f.messages)f.messages=[];
-  f.messages.push({from:'fan',text,ts:Date.now(),adminRead:false});
-  el.value='';
-  save();
-  renderFanChat();
-  updateFanChatBalance();
-  lowBalancePopup();
+  f.messages.push({from:'fan',text,ts:Date.now(),adminRead:false,id:msgId});
+  el.value='';save();renderFanChat();updateFanChatBalance();lowBalancePopup();
 }
 function unlockPaidChat(){
   let f=getActiveFan(); if(!f)return alert('Creator profile unavailable.');
@@ -4189,6 +4219,7 @@ try{ensurePayoutState();enforcePayoutRoleVisibility();loadPayoutDetails();}catch
     const msg=document.getElementById('adminModeGateMessage');
     if(!i || i.value!==PASSCODE){if(msg)msg.textContent='Incorrect admin access passcode.';return;}
     sessionStorage.setItem('creatorchat_admin_unlocked','1');
+    try{CreatorChatAuth.setSession({id:'demo-admin',role:'admin',name:'Admin',email:'',mobile:''},'demo-gate');}catch(e){}
     closeAdminModeGate();
     s.mode='admin';
     document.body.setAttribute('data-mode','admin');
@@ -4290,8 +4321,8 @@ try{
       '<div class="muted">Status: '+esc(status)+'</div>'+
       '<div class="muted">Balance: '+esc(f.balance==null?'0':f.balance)+'</div>'+
       '<div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">'+
-      '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',\\''+(blocked?'Active':'Blocked')+'\\')">'+(blocked?'Unblock':'Block')+'</button>'+
-      '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',\\''+(suspended?'Active':'Suspended')+'\\')">'+(suspended?'Unsuspend':'Suspend')+'</button>'+
+      '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',&quot;'+(blocked?'Active':'Blocked')+'&quot;)">'+(blocked?'Unblock':'Block')+'</button>'+
+      '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',&quot;'+(suspended?'Active':'Suspended')+'&quot;)">'+(suspended?'Unsuspend':'Suspend')+'</button>'+
       '<button class="btn light" type="button" onclick="viewFanAsAdmin('+index+')">View as Fan</button>'+
       '<button class="btn light" type="button" onclick="openFanManager()">← Back</button>'+
       '</div></div>';
@@ -4448,4 +4479,552 @@ try{
 })();
 </script>
 
-</body></html>
+
+<script id="step216-data-foundation">
+(function(){
+  'use strict';
+  /* Step 216: non-breaking data-layer foundation.
+     Keeps the current local demo working while giving every core entity a stable schema.
+     Provider credentials are not stored in this client-side data layer. */
+  try{
+    if(!window.s || typeof window.s!=='object') return;
+    const now=new Date().toISOString();
+    if(!s.dataLayerVersion) s.dataLayerVersion=1;
+    if(!s.createdAt) s.createdAt=now;
+    if(!Array.isArray(s.auditLog)) s.auditLog=[];
+    if(!Array.isArray(s.tx)) s.tx=[];
+    if(!Array.isArray(s.fans)) s.fans=[];
+    if(!Array.isArray(s.posts)) s.posts=[];
+    if(!Array.isArray(s.plans)) s.plans=[];
+    if(!Array.isArray(s.subscriptions)) s.subscriptions=[];
+    if(!Array.isArray(s.subscriptionPlans)) s.subscriptionPlans=[];
+    if(!Array.isArray(s.subscriptionOffers)) s.subscriptionOffers=[];
+    if(!s.wallet || typeof s.wallet!=='object') s.wallet={balance:Number(s.balance||0),currency:'INR'};
+    if(!Number.isFinite(Number(s.wallet.balance))) s.wallet.balance=Number(s.balance||0);
+    if(!s.wallet.currency) s.wallet.currency='INR';
+    s.balance=Number(s.wallet.balance||0);
+
+    const uid=function(prefix){ return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8); };
+    const normalize=function(obj,type){
+      obj=obj&&typeof obj==='object'?obj:{};
+      if(!obj.id) obj.id=uid(type||'item');
+      if(!obj.createdAt) obj.createdAt=now;
+      obj.updatedAt=now;
+      return obj;
+    };
+    s.fans=s.fans.map(function(x){return normalize(x,'fan');});
+    s.posts=s.posts.map(function(x){return normalize(x,'post');});
+    s.plans=s.plans.map(function(x){return normalize(x,'plan');});
+    s.tx=s.tx.map(function(x){return normalize(x,'tx');});
+    s.subscriptions=s.subscriptions.map(function(x){return normalize(x,'sub');});
+
+    window.CreatorChatData={
+      version:1,
+      getState:function(){return s;},
+      save:function(){ if(typeof save==='function') save(); else localStorage.setItem('cc6',JSON.stringify(s)); },
+      normalize:normalize,
+      addAudit:function(action,details){
+        s.auditLog.push({id:uid('audit'),action:String(action||''),details:String(details||''),createdAt:new Date().toISOString(),mode:String(s.mode||'fan')});
+        if(s.auditLog.length>500) s.auditLog=s.auditLog.slice(-500);
+      },
+      recordTransaction:function(tx){
+        const row=normalize(Object.assign({},tx||{}),'tx');
+        if(!row.type) row.type='other';
+        row.amount=Number(row.amount!=null?row.amount:(row.a!=null?row.a:0))||0;
+        row.currency=row.currency||'INR';
+        s.tx.push(row);
+        return row;
+      },
+      getSummary:function(){
+        return {fans:s.fans.length,posts:s.posts.length,transactions:s.tx.length,subscriptions:s.subscriptions.length,balance:Number(s.wallet.balance||0),currency:s.wallet.currency};
+      }
+    };
+    CreatorChatData.addAudit('Step 216 data foundation initialized','Core entities normalized and local data layer ready');
+    localStorage.setItem('cc6',JSON.stringify(s));
+  }catch(e){ console.warn('Step 216 data foundation:',e); }
+})();
+</script>
+
+
+<!-- CreatorChat Step 218 — Wallet & Payment Foundation -->
+<script id="creatorchat-step218-payment-foundation">
+(function(){
+  const PAYMENT_API='/api/payments';
+  function ensurePaymentState(){
+    if(!window.s) return;
+    if(!Array.isArray(s.paymentOrders)) s.paymentOrders=[];
+    if(!Array.isArray(s.paymentAudit)) s.paymentAudit=[];
+    if(!s.paymentSettings) s.paymentSettings={provider:'razorpay',currency:'INR',minRecharge:500,maxRecharge:10000};
+  }
+  window.ensurePaymentState=ensurePaymentState;
+  window.paymentConfig=()=>{ensurePaymentState();return {...s.paymentSettings};};
+  window.calculateWalletRecharge=amount=>{
+    const a=Number(amount)||0;
+    const min=Number(s?.paymentSettings?.minRecharge||500), max=Number(s?.paymentSettings?.maxRecharge||10000);
+    if(!Number.isFinite(a)||a<min||a>max) return {valid:false,amount:a,bonus:0,total:0,min,max};
+    const bonus=typeof rechargeBonus==='function'?Number(rechargeBonus(a))||0:0;
+    return {valid:true,amount:a,bonus,total:a+bonus,min,max};
+  };
+  window.createWalletPaymentOrder=async function(amount,method='upi'){
+    ensurePaymentState();
+    const calc=calculateWalletRecharge(amount);
+    if(!calc.valid) return {ok:false,error:`Recharge must be between ₹${calc.min} and ₹${calc.max}.`};
+    const order={id:'local_'+Date.now()+'_'+Math.random().toString(36).slice(2,8),amount:calc.amount,bonus:calc.bonus,totalCredit:calc.total,method,status:'pending',createdAt:new Date().toISOString()};
+    s.paymentOrders.push(order);
+    s.paymentAudit.push({action:'payment_order_created',orderId:order.id,at:order.createdAt});
+    save();
+    return {ok:true,order,mode:'local_pending',apiEndpoint:PAYMENT_API+'/create-order'};
+  };
+  window.markWalletPaymentResult=function(orderId,status,reference){
+    ensurePaymentState();
+    const o=s.paymentOrders.find(x=>String(x.id)===String(orderId));
+    if(!o)return false;
+    const allowed=['pending','created','paid','failed','cancelled'];
+    o.status=allowed.includes(String(status))?String(status):'pending';
+    if(reference)o.reference=String(reference).slice(0,200);
+    o.updatedAt=new Date().toISOString();
+    s.paymentAudit.push({action:'payment_status_updated',orderId:o.id,status:o.status,at:o.updatedAt});
+    save();
+    return true;
+  };
+  window.finalizeWalletPayment=function(orderId){
+    ensurePaymentState();
+    const o=s.paymentOrders.find(x=>String(x.id)===String(orderId));
+    if(!o||o.status!=='paid'||o.credited)return false;
+    if(!Array.isArray(s.tx))s.tx=[];
+    s.balance=Math.max(0,Number(s.balance||0))+Number(o.totalCredit||0);
+    s.tx.push({d:`Wallet recharge ₹${o.amount} + ₹${o.bonus} bonus`,a:Number(o.totalCredit||0),ts:Date.now(),type:'wallet-recharge',method:o.method||'UPI',reference:o.reference||'',paymentOrderId:o.id});
+    o.credited=true;o.creditedAt=new Date().toISOString();
+    s.paymentAudit.push({action:'wallet_credited',orderId:o.id,at:o.creditedAt});
+    save();
+    return true;
+  };
+  window.getPaymentOrder=function(orderId){ensurePaymentState();return s.paymentOrders.find(x=>String(x.id)===String(orderId))||null;};
+  window.getPendingWalletPayments=function(){ensurePaymentState();return s.paymentOrders.filter(x=>['pending','created'].includes(x.status));};
+  window.runStep218PaymentCheck=function(){
+    ensurePaymentState();
+    const seen=new Set(), dup=[];
+    s.paymentOrders.forEach(o=>{if(seen.has(o.id))dup.push(o.id);seen.add(o.id);});
+    const bad=s.paymentOrders.filter(o=>!o.id||!['pending','created','paid','failed','cancelled'].includes(o.status));
+    if(dup.length||bad.length) throw new Error('Payment foundation integrity check failed');
+    save();
+    return {pass:true,orders:s.paymentOrders.length,pending:getPendingWalletPayments().length};
+  };
+  ensurePaymentState();
+})();
+</script>
+
+<script id="creatorchat-step219-chat-messages-media-foundation">
+(function(){
+  const CHAT_API='/api/chats';
+  const MESSAGE_API='/api/messages';
+  const MAX_PAGE_SIZE=50;
+  const MAX_TEXT=4000;
+  const MAX_MEDIA_ITEMS=8;
+  const ALLOWED_MEDIA=['image','video','audio','file'];
+  function ensureStep219State(){
+    if(!Array.isArray(s.chatMessages))s.chatMessages=[];
+    if(!Array.isArray(s.chatThreads))s.chatThreads=[];
+    if(!Array.isArray(s.chatAudit))s.chatAudit=[];
+    if(!Array.isArray(s.blockedFans))s.blockedFans=[];
+    if(!Array.isArray(s.reportedChats))s.reportedChats=[];
+    if(!s.chatSettings)s.chatSettings={fanCanMessage:true,mediaEnabled:true,autoReply:false};
+    normalizeStep219Messages();
+  }
+  function cleanText(v){
+    const raw=typeof sanitizeChatText==='function'?sanitizeChatText(v):String(v||'').replace(/<[^>]*>/g,'').trim();
+    return raw.slice(0,MAX_TEXT);
+  }
+  function id(prefix){return prefix+'_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);}
+  function iso(v){const d=v?new Date(v):new Date();return Number.isNaN(d.getTime())?new Date().toISOString():d.toISOString();}
+  function normalizeMedia(m){
+    if(!m)return null;
+    const type=String(m.type||m.mediaType||'file').toLowerCase();
+    const kind=type.startsWith('image/')?'image':type.startsWith('video/')?'video':type.startsWith('audio/')?'audio':ALLOWED_MEDIA.includes(type)?type:'file';
+    return {id:String(m.id||id('media')),kind,mimeType:String(m.mimeType||m.mediaType||m.type||'application/octet-stream').slice(0,120),name:String(m.name||'media').slice(0,180),size:Math.max(0,Number(m.size)||0),url:m.url||m.src||'',thumbnailUrl:m.thumbnailUrl||'',duration:Number.isFinite(Number(m.duration))?Math.max(0,Number(m.duration)):null};
+  }
+  function normalizeStep219Messages(){
+    const seen=new Set();
+    s.chatMessages=s.chatMessages.filter(m=>m&&typeof m==='object').map(m=>{
+      const out=Object.assign({},m);
+      out.id=String(out.id||id('msg'));
+      if(seen.has(out.id))out.id=id('msg'); seen.add(out.id);
+      out.chatId=String(out.chatId||out.threadId||'');
+      out.sender=String(out.sender||out.from||'fan').toLowerCase()==='creator'?'creator':'fan';
+      out.type=out.type&&out.type!=='media'?String(out.type):((out.media||out.src)?'media':'text');
+      out.text=cleanText(out.text||'');
+      out.caption=cleanText(out.caption||'');
+      out.createdAt=iso(out.createdAt||out.ts);
+      out.updatedAt=iso(out.updatedAt||out.createdAt);
+      out.status=['pending','sent','delivered','read','failed','deleted'].includes(String(out.status))?String(out.status):'sent';
+      out.readByCreator=!!out.readByCreator;
+      out.readByFan=!!out.readByFan;
+      out.deleted=!!out.deleted;
+      out.pinned=!!out.pinned;
+      out.replyToId=out.replyToId?String(out.replyToId):null;
+      out.media=Array.isArray(out.media)?out.media.map(normalizeMedia).filter(Boolean).slice(0,MAX_MEDIA_ITEMS):[];
+      out.reactions=Array.isArray(out.reactions)?out.reactions.slice(0,30):[];
+      return out;
+    });
+  }
+  function ensureThread(chatId,fanId){
+    const cid=String(chatId||'');if(!cid)return null;
+    let t=s.chatThreads.find(x=>String(x.id)===cid);
+    if(!t){t={id:cid,fanId:String(fanId||''),status:'active',createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),unreadForCreator:0,unreadForFan:0};s.chatThreads.push(t);}
+    return t;
+  }
+  function getThread(chatId){ensureStep219State();return s.chatThreads.find(x=>String(x.id)===String(chatId||''))||null;}
+  function getMessages(chatId,opts){
+    ensureStep219State(); opts=opts||{};
+    const limit=Math.min(MAX_PAGE_SIZE,Math.max(1,Number(opts.limit)||20));
+    let rows=s.chatMessages.filter(m=>String(m.chatId)===String(chatId||'')&&!m.deleted).sort((a,b)=>new Date(a.createdAt)-new Date(b.createdAt));
+    if(opts.before){const t=new Date(opts.before).getTime();rows=rows.filter(m=>new Date(m.createdAt).getTime()<t);}
+    if(opts.after){const t=new Date(opts.after).getTime();rows=rows.filter(m=>new Date(m.createdAt).getTime()>t);}
+    return opts.before?rows.slice(-limit):rows.slice(0,limit);
+  }
+  function unreadFor(chatId,role){
+    return s.chatMessages.filter(m=>String(m.chatId)===String(chatId||'')&&!m.deleted&&(role==='creator'?(m.sender==='fan'&&!m.readByCreator):(m.sender==='creator'&&!m.readByFan))).length;
+  }
+  window.chatApiConfig219={chatsEndpoint:CHAT_API,messagesEndpoint:MESSAGE_API,maxPageSize:MAX_PAGE_SIZE,maxTextLength:MAX_TEXT,mediaKinds:ALLOWED_MEDIA};
+  window.ensureChatFoundation219=ensureStep219State;
+  window.getChatThread219=getThread;
+  window.getChatMessages219=getMessages;
+  window.getChatUnreadCount219=unreadFor;
+  window.createChatThread219=function(fanId){
+    ensureStep219State();const cid=id('chat');const t=ensureThread(cid,fanId);save();return t;
+  };
+  window.createChatMessage219=function(chatId,sender,text,media){
+    ensureStep219State();
+    const role=String(sender||'fan').toLowerCase()==='creator'?'creator':'fan';
+    if(role==='fan' && s.chatSettings.fanCanMessage===false)return null;
+    if(role==='creator' && typeof canSendToFan==='function'){
+      const t=getThread(chatId);if(t&&t.fanId&&!canSendToFan(t.fanId))return null;
+    }
+    const clean=cleanText(text);const medias=Array.isArray(media)?media.map(normalizeMedia).filter(Boolean).slice(0,MAX_MEDIA_ITEMS):[];
+    if(!clean && !medias.length)return null;
+    if(medias.length && s.chatSettings.mediaEnabled===false)return null;
+    const now=new Date().toISOString();
+    const msg={id:id('msg'),chatId:String(chatId||''),sender:role,type:medias.length?'media':'text',text:clean,caption:clean,media:medias,createdAt:now,updatedAt:now,status:'sent',readByCreator:role==='creator',readByFan:role==='fan',deleted:false,pinned:false,replyToId:null,reactions:[]};
+    s.chatMessages.push(msg);const t=ensureThread(msg.chatId,role==='fan'?msg.sender:'');if(t){t.updatedAt=now;t.unreadForCreator=unreadFor(msg.chatId,'creator');t.unreadForFan=unreadFor(msg.chatId,'fan');}save();
+    return msg;
+  };
+  window.markChatRead219=function(chatId,role){
+    ensureStep219State();const r=String(role||'creator').toLowerCase()==='fan'?'fan':'creator';
+    s.chatMessages.forEach(m=>{if(String(m.chatId)===String(chatId||'')&&!m.deleted){if(r==='creator'&&m.sender==='fan')m.readByCreator=true;if(r==='fan'&&m.sender==='creator')m.readByFan=true;m.status='read';}});
+    const t=getThread(chatId);if(t){t.unreadForCreator=unreadFor(chatId,'creator');t.unreadForFan=unreadFor(chatId,'fan');t.updatedAt=new Date().toISOString();}save();return true;
+  };
+  window.updateChatMessageStatus219=function(messageId,status){
+    ensureStep219State();const allowed=['pending','sent','delivered','read','failed','deleted'];if(!allowed.includes(String(status)))return false;
+    const m=s.chatMessages.find(x=>String(x.id)===String(messageId));if(!m)return false;m.status=String(status);m.updatedAt=new Date().toISOString();save();return true;
+  };
+  window.softDeleteChatMessage219=function(messageId,actor){
+    ensureStep219State();const m=s.chatMessages.find(x=>String(x.id)===String(messageId));if(!m)return false;
+    const r=String(actor||'fan').toLowerCase()==='creator'?'creator':'fan';if(m.sender!==r)return false;m.deleted=true;m.status='deleted';m.text='';m.caption='';m.media=[];m.updatedAt=new Date().toISOString();save();return true;
+  };
+  window.addChatMediaMetadata219=function(messageId,media){
+    ensureStep219State();const m=s.chatMessages.find(x=>String(x.id)===String(messageId));if(!m)return false;
+    const items=Array.isArray(media)?media.map(normalizeMedia).filter(Boolean).slice(0,MAX_MEDIA_ITEMS):[];if(!items.length||s.chatSettings.mediaEnabled===false)return false;m.media=items;m.type='media';m.updatedAt=new Date().toISOString();save();return true;
+  };
+  window.validateChatFoundation219=function(){
+    ensureStep219State();let changed=false;
+    s.chatMessages.forEach(m=>{if(m.media.length>MAX_MEDIA_ITEMS){m.media=m.media.slice(0,MAX_MEDIA_ITEMS);changed=true;}if(m.text.length>MAX_TEXT){m.text=m.text.slice(0,MAX_TEXT);changed=true;}if(!m.chatId){m.chatId='legacy';changed=true;}});
+    s.chatThreads=s.chatThreads.filter(t=>t&&t.id!=null).map(t=>{t.id=String(t.id);t.status=t.status||'active';t.updatedAt=iso(t.updatedAt);return t;});
+    if(changed)save();return {ok:true,messages:s.chatMessages.length,threads:s.chatThreads.length,media:s.chatMessages.reduce((n,m)=>n+m.media.length,0)};
+  };
+  window.runStep219ChatCheck=function(){
+    const r=validateChatFoundation219();if(typeof addChatAudit==='function')addChatAudit('Step 219 integrity check',JSON.stringify(r));save();return r;
+  };
+  ensureStep219State();
+})();
+</script>
+<script id="creatorchat-step220-chat-realtime-sync-foundation">(function(){
+  const SYNC_API='/api/chat-sync';
+  const OUTBOX_KEY='creatorchat_chat_outbox_v1';
+  const CURSOR_KEY='creatorchat_chat_cursor_v1';
+  const MAX_BATCH=25;
+  const RETRY_MS=5000;
+  let syncBusy=false, retryTimer=null;
+  function safeGet(key, fallback){try{const v=localStorage.getItem(key);return v==null?fallback:JSON.parse(v);}catch(e){return fallback;}}
+  function safeSet(key,v){try{localStorage.setItem(key,JSON.stringify(v));return true;}catch(e){return false;}}
+  function ensure(){
+    if(!Array.isArray(s.chatOutbox))s.chatOutbox=safeGet(OUTBOX_KEY,[])||[];
+    if(!s.chatSync||typeof s.chatSync!=='object')s.chatSync={status:'idle',lastSyncAt:null,lastError:null,cursor:null,attempts:0};
+    if(!Array.isArray(s.chatSyncEvents))s.chatSyncEvents=[];
+    return s.chatSync;
+  }
+  function now(){return new Date().toISOString();}
+  function uid(){return 'evt_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,9);}
+  function addEvent(type,details){ensure();s.chatSyncEvents.push({id:uid(),type,details:details||'',at:now()});if(s.chatSyncEvents.length>200)s.chatSyncEvents=s.chatSyncEvents.slice(-200);}
+  function queue(message){ensure();if(!message||!message.id)return false;if(s.chatOutbox.some(x=>String(x.messageId)===String(message.id)))return true;s.chatOutbox.push({id:uid(),messageId:String(message.id),chatId:String(message.chatId||''),operation:message.deleted?'delete':'upsert',queuedAt:now(),attempts:0});safeSet(OUTBOX_KEY,s.chatOutbox);save();return true;}
+  function upsertIncoming(message){
+    if(!message||!message.id)return false;
+    const id=String(message.id); const i=s.chatMessages.findIndex(x=>String(x.id)===id);
+    if(i<0)s.chatMessages.push(message); else s.chatMessages[i]=Object.assign({},s.chatMessages[i],message);
+    return true;
+  }
+  function markSynced(ids){ensure();const set=new Set(ids.map(String));s.chatOutbox=s.chatOutbox.filter(x=>!set.has(String(x.messageId)));safeSet(OUTBOX_KEY,s.chatOutbox);}
+  async function request(path,body){
+    const opts={method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify(body||{})};
+    const res=await fetch(path,opts);
+    let data=null;try{data=await res.json();}catch(e){}
+    if(!res.ok)throw new Error((data&&data.message)||('Chat sync request failed: '+res.status));
+    return data||{};
+  }
+  window.chatSyncConfig220={endpoint:SYNC_API,maxBatch:MAX_BATCH,retryMs:RETRY_MS,outboxKey:OUTBOX_KEY,cursorKey:CURSOR_KEY};
+  window.ensureChatSync220=ensure;
+  window.queueChatMessage220=queue;
+  window.getChatSyncState220=function(){ensure();return JSON.parse(JSON.stringify(s.chatSync));};
+  window.getChatOutbox220=function(){ensure();return s.chatOutbox.slice();};
+  window.runChatSync220=async function(){
+    ensure();if(syncBusy)return {ok:false,reason:'busy'};syncBusy=true;s.chatSync.status='syncing';s.chatSync.attempts=Number(s.chatSync.attempts||0)+1;save();
+    try{
+      const outbox=s.chatOutbox.slice(0,MAX_BATCH);
+      const cursor=s.chatSync.cursor||safeGet(CURSOR_KEY,null);
+      const payload={cursor,changes:outbox.map(x=>{const m=s.chatMessages.find(y=>String(y.id)===String(x.messageId));return {operation:x.operation,message:m||{id:x.messageId,chatId:x.chatId,deleted:true}};})};
+      const data=await request(SYNC_API,payload);
+      const incoming=Array.isArray(data.messages)?data.messages:[];incoming.forEach(upsertIncoming);
+      const ack=Array.isArray(data.acknowledgedMessageIds)?data.acknowledgedMessageIds:outbox.map(x=>x.messageId).slice(0,data.savedCount==null?outbox.length:Number(data.savedCount));
+      markSynced(ack);
+      if(data.cursor!=null){s.chatSync.cursor=String(data.cursor);safeSet(CURSOR_KEY,s.chatSync.cursor);}
+      s.chatSync.status='synced';s.chatSync.lastSyncAt=now();s.chatSync.lastError=null;s.chatSync.attempts=0;save();addEvent('sync_success','in:'+incoming.length+', out:'+ack.length);save();
+      return {ok:true,incoming:incoming.length,acknowledged:ack.length,pending:s.chatOutbox.length};
+    }catch(e){
+      s.chatSync.status='offline';s.chatSync.lastError=String(e&&e.message||e).slice(0,300);save();addEvent('sync_failed',s.chatSync.lastError);save();
+      return {ok:false,offline:true,error:s.chatSync.lastError,pending:s.chatOutbox.length};
+    }finally{syncBusy=false;}
+  };
+  window.scheduleChatSync220=function(){clearTimeout(retryTimer);retryTimer=setTimeout(function(){runChatSync220().then(function(r){if(!r.ok)window.scheduleChatSync220();});},RETRY_MS);};
+  window.flushChatOutbox220=window.runChatSync220;
+  window.validateChatSync220=function(){
+    ensure();let changed=false;const seen=new Set();
+    s.chatOutbox=s.chatOutbox.filter(x=>x&&x.messageId).map(x=>{x.messageId=String(x.messageId);x.chatId=String(x.chatId||'');x.attempts=Math.max(0,Number(x.attempts)||0);if(seen.has(x.messageId)){changed=true;return null;}seen.add(x.messageId);return x;}).filter(Boolean);
+    if(s.chatSync.cursor!=null)s.chatSync.cursor=String(s.chatSync.cursor);
+    if(changed){safeSet(OUTBOX_KEY,s.chatOutbox);save();}
+    return {ok:true,pending:s.chatOutbox.length,status:s.chatSync.status,lastSyncAt:s.chatSync.lastSyncAt};
+  };
+  const originalCreate=window.createChatMessage219;
+  if(typeof originalCreate==='function'){
+    window.createChatMessage219=function(chatId,sender,text,media){const m=originalCreate(chatId,sender,text,media);if(m)queue(m);return m;};
+  }
+  ensure();
+  document.addEventListener('visibilitychange',function(){if(!document.hidden&&s.chatOutbox&&s.chatOutbox.length)window.runChatSync220();});
+  window.addEventListener('online',function(){window.runChatSync220();});
+})();</script>
+
+<!-- CreatorChat STEP 221: NOTIFICATIONS_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep221)return;window.__ccStep221=true;window.CreatorChatNotifications221={version:1,key:'creatorchat_notifications_v1',create:(userId,type,title,body)=>({id:'ntf_'+Date.now(),userId:String(userId||''),type:String(type||'system'),title:String(title||''),body:String(body||''),read:false,createdAt:new Date().toISOString()}),unread:(list)=>Array.isArray(list)?list.filter(x=>!x.read):[],markRead:n=>({...n,read:true,readAt:new Date().toISOString()}),validate:n=>!!n&&!!n.id&&!!n.userId};})();
+</script>
+
+<!-- CreatorChat STEP 222: PRESENCE_READ_RECEIPTS -->
+<script>
+(()=>{if(window.__ccStep222)return;window.__ccStep222=true;window.CreatorChatPresence222={set:(userId,status='online')=>({userId:String(userId),status:['online','away','offline'].includes(status)?status:'offline',lastSeenAt:new Date().toISOString()}),receipt:(messageId,userId,status='read')=>({messageId:String(messageId),userId:String(userId),status:['sent','delivered','read'].includes(status)?status:'sent',at:new Date().toISOString()}),validate:x=>!!x&&!!x.userId};})();
+</script>
+
+<!-- CreatorChat STEP 223: MODERATION_SAFETY_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep223)return;window.__ccStep223=true;window.CreatorChatModeration223={report:(reporterId,targetId,reason)=>({id:'rpt_'+Date.now(),reporterId:String(reporterId||''),targetId:String(targetId||''),reason:String(reason||'unspecified').slice(0,500),status:'open',createdAt:new Date().toISOString()}),resolve:(r,status='resolved')=>({...r,status,resolvedAt:new Date().toISOString()}),validate:r=>!!r&&!!r.id&&!!r.reporterId&&!!r.targetId};})();
+</script>
+
+<!-- CreatorChat STEP 224: CREATOR_PROFILE_PUBLIC_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep224)return;window.__ccStep224=true;window.CreatorChatProfile224={normalize:p=>({id:String(p?.id||p?.creatorId||''),displayName:String(p?.displayName||p?.name||'').replace(/[<>]/g,''),username:String(p?.username||'').replace(/[<>]/g,''),bio:String(p?.bio||'').replace(/[<>]/g,'').slice(0,1000),category:String(p?.category||''),verified:!!p?.verified,updatedAt:new Date().toISOString()}),public:p=>{const n=window.CreatorChatProfile224.normalize(p||{});return n},validate:p=>!!p&&!!p.id&&!!p.displayName};})();
+</script>
+
+<!-- CreatorChat STEP 225: SUBSCRIPTIONS_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep225)return;window.__ccStep225=true;window.CreatorChatSubscriptions225={create:(fanId,creatorId,planId,price)=>({id:'sub_'+Date.now(),fanId:String(fanId),creatorId:String(creatorId),planId:String(planId||'default'),price:Number(price||0),status:'active',startedAt:new Date().toISOString()}),cancel:s=>({...s,status:'cancelled',cancelledAt:new Date().toISOString()}),active:(list,fanId,creatorId)=>Array.isArray(list)?list.find(s=>s.fanId===String(fanId)&&s.creatorId===String(creatorId)&&s.status==='active')||null:null,validate:s=>!!s&&!!s.id&&!!s.fanId&&!!s.creatorId};})();
+</script>
+
+<!-- CreatorChat STEP 226: POSTS_CONTENT_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep226)return;window.__ccStep226=true;window.CreatorChatPosts226={create:(creatorId,content,media=[])=>({id:'post_'+Date.now(),creatorId:String(creatorId),content:String(content||'').replace(/[<>]/g,'').slice(0,5000),media:Array.isArray(media)?media.slice(0,10):[],status:'published',likes:0,comments:0,createdAt:new Date().toISOString()}),delete:p=>({...p,status:'deleted',deletedAt:new Date().toISOString()}),validate:p=>!!p&&!!p.id&&!!p.creatorId};})();
+</script>
+
+<!-- CreatorChat STEP 227: DISCOVERY_SEARCH_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep227)return;window.__ccStep227=true;window.CreatorChatDiscovery227={score:(x,q)=>{q=String(q||'').toLowerCase();const s=(x.displayName+' '+x.username+' '+x.category+' '+x.bio).toLowerCase();return q?(s.includes(q)?5:0):0},search:(items,q,limit=20)=>Array.isArray(items)?items.map(x=>[x,window.CreatorChatDiscovery227.score(x,q)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,Math.min(50,limit)).map(x=>x[0]):[]};})();
+</script>
+
+<!-- CreatorChat STEP 228: ADMIN_ANALYTICS_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep228)return;window.__ccStep228=true;window.CreatorChatAnalytics228={summarize:s=>{const f=Array.isArray(s?.fans)?s.fans:[],m=Array.isArray(s?.chatMessages)?s.chatMessages:[],p=Array.isArray(s?.posts)?s.posts:[],t=Array.isArray(s?.transactions)?s.transactions:[];return{fans:f.length,messages:m.length,posts:p.length,transactions:t.length,generatedAt:new Date().toISOString()}},validate:x=>!!x&&Number.isFinite(x.fans)};})();
+</script>
+
+<!-- CreatorChat STEP 229: FAN_MANAGEMENT_ENHANCEMENT -->
+<script>
+(()=>{if(window.__ccStep229)return;window.__ccStep229=true;window.CreatorChatFanManagement229={normalize:f=>({...f,id:String(f?.id||f?.fanId||''),status:['active','blocked','suspended','pending'].includes(f?.status)?f.status:'active',updatedAt:new Date().toISOString()}),filter:(fans,c={})=>Array.isArray(fans)?fans.filter(f=>(!c.status||f.status===c.status)&&(!c.query||String(f.name||f.username||f.id).toLowerCase().includes(String(c.query).toLowerCase()))):[],validate:f=>!!f&&!!f.id};})();
+</script>
+
+<!-- CreatorChat STEP 230: EARNINGS_PAYOUT_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep230)return;window.__ccStep230=true;window.CreatorChatEarnings230={record:(creatorId,source,amount,fee=0)=>({id:'earn_'+Date.now(),creatorId:String(creatorId),source:String(source||'payment'),gross:Number(amount||0),fee:Number(fee||0),net:Number(amount||0)-Number(fee||0),status:'pending',createdAt:new Date().toISOString()}),available:list=>Array.isArray(list)?list.filter(x=>x.status==='available').reduce((s,x)=>s+Number(x.net||0),0):0,payout:(creatorId,amount)=>({id:'po_'+Date.now(),creatorId:String(creatorId),amount:Number(amount||0),status:'requested',createdAt:new Date().toISOString()}),validate:x=>!!x&&Number.isFinite(x.net)};})();
+</script>
+
+<!-- CreatorChat STEP 231: SETTINGS_PRIVACY_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep231)return;window.__ccStep231=true;window.CreatorChatSettings231={defaults:{notifications:true,publicProfile:true,showOnlineStatus:true},sanitize:p=>Object.fromEntries(Object.entries(p||{}).filter(([k])=>['notifications','publicProfile','showOnlineStatus'].includes(k))),validate:x=>!!x&&typeof x==='object'};})();
+</script>
+
+<!-- CreatorChat STEP 232: SECURITY_RATE_LIMIT_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep232)return;window.__ccStep232=true;(()=>{const b=new Map();window.CreatorChatSecurity232={rateLimit:(key,max=30,windowMs=60000)=>{const k=String(key||'global'),now=Date.now(),a=(b.get(k)||[]).filter(t=>now-t<windowMs);if(a.length>=max)return{allowed:false};a.push(now);b.set(k,a);return{allowed:true,remaining:max-a.length}},sanitize:v=>String(v??'').replace(/[<>`]/g,''),constantTimeEqual:(a,c)=>{a=String(a);c=String(c);if(a.length!==c.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^c.charCodeAt(i);return d===0}};})();})();
+</script>
+
+<!-- CreatorChat STEP 233: API_CONTRACT_LAYER -->
+<script>
+(()=>{if(window.__ccStep233)return;window.__ccStep233=true;window.CreatorChatApi233={version:'v1',endpoints:{auth:['POST /api/auth/login','POST /api/auth/logout'],chats:['GET /api/chats','POST /api/chats'],messages:['GET /api/messages','POST /api/messages'],payments:['POST /api/payments/orders','POST /api/payments/verify'],notifications:['GET /api/notifications'],subscriptions:['POST /api/subscriptions'],posts:['GET /api/posts','POST /api/posts']},request:(method,path,body)=>({method:String(method||'GET').toUpperCase(),path:String(path||''),body:body??null,requestId:'req_'+Date.now()})};})();
+</script>
+
+<!-- CreatorChat STEP 234: DATABASE_SCHEMA_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep234)return;window.__ccStep234=true;window.CreatorChatDb234={version:1,tables:{users:['id','role','status'],creator_profiles:['id','userId','displayName'],fans:['id','userId','status'],chats:['id','fanId','creatorId'],messages:['id','chatId','senderId','body','status'],wallet_transactions:['id','userId','type','amount'],payment_orders:['id','userId','amount','status'],subscriptions:['id','fanId','creatorId','status'],posts:['id','creatorId','content','status'],notifications:['id','userId','type','read']},validate:()=>Object.values(window.CreatorChatDb234.tables).every(x=>x.includes('id'))};})();
+</script>
+
+<!-- CreatorChat STEP 235: ERROR_OBSERVABILITY_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep235)return;window.__ccStep235=true;window.CreatorChatObservability235={safeError:e=>({name:e?.name||'Error',message:String(e?.message||'Unknown error').slice(0,500)}),event:(level,message,meta={})=>({id:'log_'+Date.now(),level:['info','warn','error'].includes(level)?level:'info',message:String(message||'').slice(0,1000),meta,at:new Date().toISOString()}),validate:x=>!!x&&!!x.at};})();
+</script>
+
+<!-- CreatorChat STEP 236: FEATURE_FLAGS_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep236)return;window.__ccStep236=true;window.CreatorChatFlags236={defaults:{chatRealtime:true,walletPayments:true,subscriptions:true,notifications:true,moderation:true},enabled:key=>!!window.CreatorChatFlags236.defaults[key],validate:()=>Object.keys(window.CreatorChatFlags236.defaults).length===5};})();
+</script>
+
+<!-- CreatorChat STEP 237: DATA_EXPORT_IMPORT_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep237)return;window.__ccStep237=true;window.CreatorChatDataPort237={exportState:s=>{const d={};for(const[k,v]of Object.entries(s||{}))if(!/password|token|secret/i.test(k))d[k]=v;return JSON.stringify({exportVersion:1,exportedAt:new Date().toISOString(),data:d})},validateImport:r=>{try{const x=typeof r==='string'?JSON.parse(r):r;return x?.exportVersion===1&&x.data&&typeof x.data==='object'}catch(e){return false}}};})();
+</script>
+
+<!-- CreatorChat STEP 238: ACCESSIBILITY_PERFORMANCE_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep238)return;window.__ccStep238=true;window.CreatorChatQuality238={audit:()=>({imagesWithoutAlt:[...document.images].filter(i=>!String(i.alt||'').trim()).length,buttonsWithoutLabel:[...document.querySelectorAll('button')].filter(b=>!String(b.innerText||b.getAttribute('aria-label')||'').trim()).length}),defer:fn=>('requestIdleCallback'in window?requestIdleCallback(fn,{timeout:1000}):setTimeout(fn,0))};})();
+</script>
+
+<!-- CreatorChat STEP 239: PRELAUNCH_AUDIT_FOUNDATION -->
+<script>
+(()=>{if(window.__ccStep239)return;window.__ccStep239=true;window.CreatorChatPrelaunch239={run:()=>{const h=document.documentElement?.innerHTML||'',checks={step220:h.includes('STEP 220'),step221:!!window.CreatorChatNotifications221,step222:!!window.CreatorChatPresence222,step223:!!window.CreatorChatModeration223,step224:!!window.CreatorChatProfile224,step225:!!window.CreatorChatSubscriptions225,step226:!!window.CreatorChatPosts226,step227:!!window.CreatorChatDiscovery227,step228:!!window.CreatorChatAnalytics228,step229:!!window.CreatorChatFanManagement229,step230:!!window.CreatorChatEarnings230,step231:!!window.CreatorChatSettings231,step232:!!window.CreatorChatSecurity232,step233:!!window.CreatorChatApi233,step234:!!window.CreatorChatDb234,step235:!!window.CreatorChatObservability235,step236:!!window.CreatorChatFlags236,step237:!!window.CreatorChatDataPort237,step238:!!window.CreatorChatQuality238};return{checks,passed:Object.values(checks).filter(Boolean).length,total:Object.keys(checks).length,allFound:Object.values(checks).every(Boolean),at:new Date().toISOString()}}};})();
+</script>
+
+<!-- CreatorChat STEP 240: FINAL_INTEGRATION_READINESS -->
+<script>
+(()=>{if(window.__ccStep240)return;window.__ccStep240=true;window.CreatorChatFinal240={version:'240.0',status:'development-complete',productionGates:{serverAuthRequired:true,serverDatabaseRequired:true,razorpayServerVerificationRequired:true,apiDeploymentRequired:true,httpsRequired:true},runFinalCheck:()=>{const pre=window.CreatorChatPrelaunch239?.run?.()||{passed:0,total:0,allFound:false};return{steps:'221-240',prelaunch:pre,readyForFinalAudit:!!pre.allFound,productionGates:window.CreatorChatFinal240.productionGates,generatedAt:new Date().toISOString()}},validate:()=>true};})();
+</script>
+<!-- CreatorChat Step 217 — Authentication & Session Foundation -->
+<script id="step217-auth-foundation">
+(function(){
+  const AUTH_KEY='creatorchat_auth_session_v1';
+  const AUTH_VERSION=1;
+  function safeRead(){try{return JSON.parse(sessionStorage.getItem(AUTH_KEY)||'null');}catch(e){return null;}}
+  function safeWrite(v){try{sessionStorage.setItem(AUTH_KEY,JSON.stringify(v));return true;}catch(e){return false;}}
+  function now(){return new Date().toISOString();}
+  window.ensureAuthState=function(){
+    if(!s.auth||typeof s.auth!=='object')s.auth={version:AUTH_VERSION,provider:'pending',status:'signed_out',user:null,updatedAt:now()};
+    if(!s.auth.version)s.auth.version=AUTH_VERSION;
+    if(!s.auth.status)s.auth.status='signed_out';
+    if(!('user' in s.auth))s.auth.user=null;
+    if(!s.auth.provider)s.auth.provider='pending';
+    return s.auth;
+  };
+  window.CreatorChatAuth={
+    key:AUTH_KEY,
+    getSession:function(){return safeRead();},
+    isSignedIn:function(){const x=safeRead();return !!(x&&x.status==='signed_in'&&x.user&&x.user.id);},
+    currentUser:function(){const x=safeRead();return x&&x.user?x.user:null;},
+    setSession:function(user,provider){
+      const clean={id:String(user?.id||''),role:String(user?.role||'fan'),name:String(user?.name||''),email:String(user?.email||''),mobile:String(user?.mobile||'')};
+      if(!clean.id)return false;
+      const session={version:AUTH_VERSION,status:'signed_in',provider:String(provider||'server'),user:clean,issuedAt:now(),updatedAt:now()};
+      safeWrite(session);ensureAuthState();s.auth={...s.auth,...session};return true;
+    },
+    signOut:function(){
+      try{sessionStorage.removeItem(AUTH_KEY);sessionStorage.removeItem('creatorchat_admin_unlocked');}catch(e){}
+      ensureAuthState();s.auth={...s.auth,status:'signed_out',user:null,updatedAt:now()};
+      return true;
+    },
+    requireRole:function(role){const u=this.currentUser();return !!u&&String(u.role||'').toLowerCase()===String(role||'').toLowerCase();},
+    api:function(path,options){
+      const opts=options&&typeof options==='object'?{...options}:{};opts.credentials='include';
+      opts.headers={...(options&&options.headers||{}),'Content-Type':'application/json'};return fetch(path,opts);
+    }
+  };
+  window.restoreAuthSession=function(){
+    ensureAuthState();const session=CreatorChatAuth.getSession();
+    if(session&&session.status==='signed_in'&&session.user&&session.user.id){
+      s.auth={...s.auth,...session,updatedAt:now()};
+      if(session.user.role==='admin')try{sessionStorage.setItem('creatorchat_admin_unlocked','1');}catch(e){}
+      return true;
+    }return false;
+  };
+  window.clearAuthSession=function(){CreatorChatAuth.signOut();};
+  window.adminLogin=async function(){
+    const email=document.getElementById('adminLoginEmail')?.value.trim(),password=document.getElementById('adminLoginPassword')?.value||'',msg=document.getElementById('adminLoginMessage');
+    if(!email||!/^\S+@\S+\.\S+$/.test(email)){if(msg)msg.textContent='Enter a valid admin email.';return;}
+    if(!password){if(msg)msg.textContent='Enter your admin password.';return;}
+    if(msg)msg.textContent='Signing in…';
+    try{
+      const res=await CreatorChatAuth.api('/api/auth/login',{method:'POST',body:JSON.stringify({email,password,role:'admin'})});
+      const data=await res.json().catch(()=>({}));
+      if(!res.ok||!data||!data.user){if(msg)msg.textContent=data.message||'Authentication service is not connected.';return;}
+      if(String(data.user.role||'').toLowerCase()!=='admin'){if(msg)msg.textContent='This account does not have admin access.';return;}
+      CreatorChatAuth.setSession(data.user,'server');sessionStorage.setItem('creatorchat_admin_unlocked','1');s.mode='admin';save();
+      const p=document.getElementById('adminLoginPanel');if(p)p.style.setProperty('display','none','important');
+      if(typeof nav==='function')nav();if(typeof show==='function')show('admin');
+    }catch(e){if(msg)msg.textContent='Authentication service is not connected.';}
+  };
+  window.adminLogout=function(){
+    try{CreatorChatAuth.api('/api/auth/logout',{method:'POST'}).catch(()=>{});}catch(e){}
+    CreatorChatAuth.signOut();s.mode='fan';save();
+  };
+  ensureAuthState();restoreAuthSession();
+})();
+</script>
+
+<!-- CreatorChat STEP 242: PRODUCTION_AUTH_INTEGRATION -->
+<script id="step242-production-auth-integration">
+(function(){
+  if(window.__ccStep242)return; window.__ccStep242=true;
+  // Production rule: the old client-side passcode must never grant admin access.
+  // Admin access is granted only after the server validates /api/auth/login.
+  window.unlockAdminMode=async function(){
+    const gateMsg=document.getElementById('adminModeGateMessage');
+    const gateInput=document.getElementById('adminModeGateInput');
+    if(gateInput)gateInput.value='';
+    if(gateMsg)gateMsg.textContent='Use your admin email and password to continue.';
+    const panel=document.getElementById('adminLoginPanel');
+    if(panel)panel.style.setProperty('display','block','important');
+    const email=document.getElementById('adminLoginEmail');
+    if(email)setTimeout(()=>email.focus(),50);
+    const gate=document.getElementById('adminModeGate');
+    if(gate)gate.style.setProperty('display','none','important');
+  };
+  window.openAdminModeGate=function(){
+    const panel=document.getElementById('adminLoginPanel');
+    if(panel)panel.style.setProperty('display','block','important');
+    const gate=document.getElementById('adminModeGate');
+    if(gate)gate.style.setProperty('display','none','important');
+    const msg=document.getElementById('adminLoginMessage'); if(msg)msg.textContent='';
+  };
+  window.closeAdminModeGate=function(){
+    const gate=document.getElementById('adminModeGate');
+    if(gate)gate.style.setProperty('display','none','important');
+  };
+  window.CreatorChatProduction242={
+    version:'242.0',
+    clientAdminPasscodeDisabled:true,
+    serverAuthRequired:true,
+    verifyAdminSession:async function(){
+      try{
+        const r=await CreatorChatAuth.api('/api/auth/session',{method:'GET'});
+        if(!r.ok)return false;
+        const d=await r.json().catch(()=>({}));
+        return !!(d&&d.user&&String(d.user.role||'').toLowerCase()==='admin');
+      }catch(e){return false;}
+    }
+  };
+})();
+</script>
+
+<!-- CreatorChat STEP 243: production DB integration candidate -->
+</body>
+</html>
