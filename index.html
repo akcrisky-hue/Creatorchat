@@ -2006,6 +2006,14 @@ async function sendFanMessage(){
       if(cr.ok&&cd.chat?.id){chatId=String(cd.chat.id);f.chatId=chatId;}
       else if(cr.status!==401&&cr.status!==404&&cr.status!==405)throw new Error(cd.error||'Chat could not be opened');
     }
+    // Demo accounts intentionally have no server-side user id/session.
+    // On the hosted demo UI, use the local demo billing path instead of
+    // showing "Message was not charged". Real authenticated accounts still
+    // use the server-authoritative /api/messages billing path below.
+    const isDemoFan = !String(s.fanAccount?.id||s.userId||'').trim();
+    if(!chatId && isDemoFan){
+      throw new Error('__DEMO_CHAT_FALLBACK__');
+    }
     if(!chatId)throw new Error('Chat is not connected to a production account');
     const res=await fetch('/api/messages',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:msgId,chatId,body:text})});
     const data=await res.json().catch(()=>({}));
@@ -2024,7 +2032,11 @@ async function sendFanMessage(){
     if(res.status!==401&&res.status!==404&&res.status!==405)throw new Error(data.error||'Message could not be sent');
     if(location.protocol!=='file:'){alert('⚠️ Chat server is not connected. Message was not charged.');return;}
   }catch(e){
-    if(location.protocol!=='file:'){alert('⚠️ '+String(e?.message||'Chat server unavailable')+'\n\nMessage was not charged.');return;}
+    const demoFallback = String(e?.message||'')==='__DEMO_CHAT_FALLBACK__';
+    if(location.protocol!=='file:' && !demoFallback){
+      alert('⚠️ '+String(e?.message||'Chat server unavailable')+'\n\nMessage was not charged.');
+      return;
+    }
   }
   if(rate>0){
     s.balance=Number(s.balance||0)-rate;
