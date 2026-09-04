@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep232)return;window.__ccStep232=true;(()=>{const b=new Map();window.CreatorChatSecurity232={rateLimit:(key,max=30,windowMs=60000)=>{const k=String(key||'global'),now=Date.now(),a=(b.get(k)||[]).filter(t=>now-t<windowMs);if(a.length>=max)return{allowed:false};a.push(now);b.set(k,a);return{allowed:true,remaining:max-a.length}},sanitize:v=>String(v??'').replace(/[<>`]/g,''),constantTimeEqual:(a,c)=>{a=String(a);c=String(c);if(a.length!==c.length)return false;let d=0;for(let i=0;i<a.length;i++)d|=a.charCodeAt(i)^c.charCodeAt(i);return d===0}};})();})();

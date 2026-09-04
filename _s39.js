@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep238)return;window.__ccStep238=true;window.CreatorChatQuality238={audit:()=>({imagesWithoutAlt:[...document.images].filter(i=>!String(i.alt||'').trim()).length,buttonsWithoutLabel:[...document.querySelectorAll('button')].filter(b=>!String(b.innerText||b.getAttribute('aria-label')||'').trim()).length}),defer:fn=>('requestIdleCallback'in window?requestIdleCallback(fn,{timeout:1000}):setTimeout(fn,0))};})();

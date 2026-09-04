@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep223)return;window.__ccStep223=true;window.CreatorChatModeration223={report:(reporterId,targetId,reason)=>({id:'rpt_'+Date.now(),reporterId:String(reporterId||''),targetId:String(targetId||''),reason:String(reason||'unspecified').slice(0,500),status:'open',createdAt:new Date().toISOString()}),resolve:(r,status='resolved')=>({...r,status,resolvedAt:new Date().toISOString()}),validate:r=>!!r&&!!r.id&&!!r.reporterId&&!!r.targetId};})();

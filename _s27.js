@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep226)return;window.__ccStep226=true;window.CreatorChatPosts226={create:(creatorId,content,media=[])=>({id:'post_'+Date.now(),creatorId:String(creatorId),content:String(content||'').replace(/[<>]/g,'').slice(0,5000),media:Array.isArray(media)?media.slice(0,10):[],status:'published',likes:0,comments:0,createdAt:new Date().toISOString()}),delete:p=>({...p,status:'deleted',deletedAt:new Date().toISOString()}),validate:p=>!!p&&!!p.id&&!!p.creatorId};})();

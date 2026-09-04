@@ -1,0 +1,1 @@
+try{ensureChatUpgradeState();validateChatState();}catch(e){}

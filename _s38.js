@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep237)return;window.__ccStep237=true;window.CreatorChatDataPort237={exportState:s=>{const d={};for(const[k,v]of Object.entries(s||{}))if(!/password|token|secret/i.test(k))d[k]=v;return JSON.stringify({exportVersion:1,exportedAt:new Date().toISOString(),data:d})},validateImport:r=>{try{const x=typeof r==='string'?JSON.parse(r):r;return x?.exportVersion===1&&x.data&&typeof x.data==='object'}catch(e){return false}}};})();

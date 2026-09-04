@@ -1,0 +1,1 @@
+try{ensureStep178to195();strictFanHistoryVisibility178();}catch(e){}

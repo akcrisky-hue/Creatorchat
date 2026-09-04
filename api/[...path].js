@@ -13,6 +13,7 @@ import healthApp from '../backend/api/health/app.mjs';
 import healthDb from '../backend/api/health/db.mjs';
 import messages from '../backend/api/messages/index.mjs';
 import notifications from '../backend/api/notifications/index.mjs';
+import publicCreator from '../backend/api/public/creator/index.mjs';
 import paymentOrders from '../backend/api/payments/orders.mjs';
 import paymentVerify from '../backend/api/payments/verify.mjs';
 import posts from '../backend/api/posts/index.mjs';
@@ -38,6 +39,7 @@ const ROUTES = new Map([
   ['/api/health/db', healthDb],
   ['/api/messages', messages],
   ['/api/notifications', notifications],
+  ['/api/public/creator', publicCreator],
   ['/api/payments/orders', paymentOrders],
   ['/api/payments/verify', paymentVerify],
   ['/api/posts', posts],

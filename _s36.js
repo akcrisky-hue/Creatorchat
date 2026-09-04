@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep235)return;window.__ccStep235=true;window.CreatorChatObservability235={safeError:e=>({name:e?.name||'Error',message:String(e?.message||'Unknown error').slice(0,500)}),event:(level,message,meta={})=>({id:'log_'+Date.now(),level:['info','warn','error'].includes(level)?level:'info',message:String(message||'').slice(0,1000),meta,at:new Date().toISOString()}),validate:x=>!!x&&!!x.at};})();

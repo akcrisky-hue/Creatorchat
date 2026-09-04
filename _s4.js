@@ -1,0 +1,1 @@
+try{ensureStep108to127();guardFanFinancialUI();}catch(e){}

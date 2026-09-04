@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep228)return;window.__ccStep228=true;window.CreatorChatAnalytics228={summarize:s=>{const f=Array.isArray(s?.fans)?s.fans:[],m=Array.isArray(s?.chatMessages)?s.chatMessages:[],p=Array.isArray(s?.posts)?s.posts:[],t=Array.isArray(s?.transactions)?s.transactions:[];return{fans:f.length,messages:m.length,posts:p.length,transactions:t.length,generatedAt:new Date().toISOString()}},validate:x=>!!x&&Number.isFinite(x.fans)};})();

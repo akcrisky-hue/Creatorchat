@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep227)return;window.__ccStep227=true;window.CreatorChatDiscovery227={score:(x,q)=>{q=String(q||'').toLowerCase();const s=(x.displayName+' '+x.username+' '+x.category+' '+x.bio).toLowerCase();return q?(s.includes(q)?5:0):0},search:(items,q,limit=20)=>Array.isArray(items)?items.map(x=>[x,window.CreatorChatDiscovery227.score(x,q)]).filter(x=>x[1]>0).sort((a,b)=>b[1]-a[1]).slice(0,Math.min(50,limit)).map(x=>x[0]):[]};})();

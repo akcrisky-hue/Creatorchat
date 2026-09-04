@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep224)return;window.__ccStep224=true;window.CreatorChatProfile224={normalize:p=>({id:String(p?.id||p?.creatorId||''),displayName:String(p?.displayName||p?.name||'').replace(/[<>]/g,''),username:String(p?.username||'').replace(/[<>]/g,''),bio:String(p?.bio||'').replace(/[<>]/g,'').slice(0,1000),category:String(p?.category||''),verified:!!p?.verified,updatedAt:new Date().toISOString()}),public:p=>{const n=window.CreatorChatProfile224.normalize(p||{});return n},validate:p=>!!p&&!!p.id&&!!p.displayName};})();

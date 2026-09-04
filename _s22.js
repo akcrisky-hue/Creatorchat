@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep221)return;window.__ccStep221=true;window.CreatorChatNotifications221={version:1,key:'creatorchat_notifications_v1',create:(userId,type,title,body)=>({id:'ntf_'+Date.now(),userId:String(userId||''),type:String(type||'system'),title:String(title||''),body:String(body||''),read:false,createdAt:new Date().toISOString()}),unread:(list)=>Array.isArray(list)?list.filter(x=>!x.read):[],markRead:n=>({...n,read:true,readAt:new Date().toISOString()}),validate:n=>!!n&&!!n.id&&!!n.userId};})();

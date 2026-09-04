@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep222)return;window.__ccStep222=true;window.CreatorChatPresence222={set:(userId,status='online')=>({userId:String(userId),status:['online','away','offline'].includes(status)?status:'offline',lastSeenAt:new Date().toISOString()}),receipt:(messageId,userId,status='read')=>({messageId:String(messageId),userId:String(userId),status:['sent','delivered','read'].includes(status)?status:'sent',at:new Date().toISOString()}),validate:x=>!!x&&!!x.userId};})();

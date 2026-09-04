@@ -1,0 +1,2 @@
+
+(()=>{if(window.__ccStep229)return;window.__ccStep229=true;window.CreatorChatFanManagement229={normalize:f=>({...f,id:String(f?.id||f?.fanId||''),status:['active','blocked','suspended','pending'].includes(f?.status)?f.status:'active',updatedAt:new Date().toISOString()}),filter:(fans,c={})=>Array.isArray(fans)?fans.filter(f=>(!c.status||f.status===c.status)&&(!c.query||String(f.name||f.username||f.id).toLowerCase().includes(String(c.query).toLowerCase()))):[],validate:f=>!!f&&!!f.id};})();

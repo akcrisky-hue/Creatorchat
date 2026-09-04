@@ -449,6 +449,21 @@ body[data-mode="fan"] #adminFanAccountSections{display:none!important}
 
 <!-- CreatorChat STEP 244: PRODUCTION_API_HARDENING -->
 <!-- CreatorChat Step 248: wallet ledger + atomic payment credit -->
+
+<style id="creator-public-entry-style">
+body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.public-creator-entry>#notificationCenter{display:none!important}
+.public-entry-gate{position:fixed;inset:0;background:linear-gradient(135deg,#f6f3ff,#fff);z-index:50000;overflow:auto;padding:24px 14px;box-sizing:border-box}
+.public-entry-wrap{max-width:430px;margin:5vh auto 0}
+.public-entry-brand{text-align:center;font-weight:900;font-size:28px;color:#625bf3;margin-bottom:18px}
+.public-entry-card{background:#fff;border-radius:20px;padding:20px;box-shadow:0 12px 40px rgba(0,0,0,.12)}
+.public-entry-avatar{width:76px;height:76px;border-radius:50%;margin:0 auto 12px;display:grid;place-items:center;background:linear-gradient(135deg,#f2a7cf,#8279ee);color:#fff;font-weight:900;font-size:25px;overflow:hidden}
+.public-entry-avatar img{width:100%;height:100%;object-fit:cover}
+.public-entry-tabs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:16px 0 10px}
+.public-entry-tabs button{border:0;border-radius:11px;padding:11px;font-weight:800;background:#eeeaff;color:#5d55e9}
+.public-entry-tabs button.active{background:#635bf3;color:#fff}
+.public-entry-status{font-size:13px;color:#777;min-height:18px;margin-top:8px;text-align:center}
+.public-entry-note{font-size:12px;color:#777;text-align:center;margin-top:12px}
+</style>
 </head>
 <body>
 
@@ -1209,6 +1224,16 @@ body[data-mode="fan"] #adminFanAccountSections{display:none!important}
 
 <button class="btn full" type="button" onclick="saveCreatorProfile()">💾 Save Creator Profile</button>
 
+<div class="card" id="creatorPublicLinkCard" style="margin-top:12px;padding:14px;background:#faf9ff;border:1px solid #e8e4ff">
+  <div class="row" style="align-items:flex-start">
+    <div><b>🔗 Fan Profile Link</b><div class="muted">Share this link on Instagram, Facebook or WhatsApp.</div></div>
+    <span class="pill">Public</span>
+  </div>
+  <input id="creatorPublicLink" readonly style="margin-top:10px;background:#f7f7fb" value="">
+  <button class="btn full" type="button" onclick="copyCreatorPublicLink()">📋 Copy Fan Link</button>
+  <div class="muted" style="margin-top:7px">Fans opening this link will see only Fan Login / Create Fan Account.</div>
+</div>
+
 <div class="note" style="margin-top:10px">
 <b>Fans will see only these on the public profile:</b> Profile Photo, Cover Photo, and Email will be visible.
 <br><span class="muted">Mobile number and other private details will not be visible to fans.</span>
@@ -1669,7 +1694,7 @@ function renderFanActivity(){
   if(!b||!o||!tx)return;
   b.textContent=money(Number(s.balance||0));
   o.textContent=Number(s.orders||0);
-  const rows=(s.tx||[]).slice().reverse().slice(0,5);
+  const rows=(s.tx||[]).filter(function(x){var ty=String(x.type||'').toLowerCase(),d=String(x.d||'').toLowerCase();return ty==='wallet-recharge'||d.includes('wallet recharge')||d.includes('wallet top up')||d.includes('wallet top-up');}).slice().reverse().slice(0,5);
   tx.innerHTML=rows.length?rows.map(x=>`<div class="row" style="padding:8px 0;border-bottom:1px solid #eee"><span>${x.d||'Transaction'}</span><b>${money(x.a||0)}</b></div>`).join(''):'<div class="muted">No transactions yet.</div>';
 }
 function toggleFanActivity(){
@@ -1719,7 +1744,12 @@ function saveCreatorProfile(){
     read(c.files&&c.files[0],function(cover){
       if(pic)s.creatorProfile.pic=pic;
       if(cover)s.creatorProfile.cover=cover;
-      save(); renderCreatorProfileFields(); alert('Creator profile saved.');
+      save(); renderCreatorProfileFields(); renderCreatorPublicLink();
+      const u=(typeof CreatorChatAuth!=='undefined')?CreatorChatAuth.currentUser():null;
+      if(u&&String(u.role||'').toLowerCase()==='creator'){
+        CreatorChatAuth.api('/api/creator/profile',{method:'PATCH',body:JSON.stringify({creatorId:u.id,displayName:s.creatorProfile.name,bio:String(s.creatorProfile.bio||''),chatPricePaise:Math.round(Number(s.rate||29)*100)})}).catch(()=>{});
+      }
+      alert('Creator profile saved.');
     });
   });
 }
@@ -1733,6 +1763,24 @@ function renderPublicCreatorProfile(){
   if(pic)pic.innerHTML=p.pic?'<img src="'+p.pic+'" style="width:100%;height:100%;object-fit:cover">':name.slice(0,2).toUpperCase();
   let cover=document.getElementById('fanCreatorCover');
   if(cover)cover.style.backgroundImage=p.cover?'url("'+p.cover+'")':'none';
+}
+
+function creatorPublicSlug(name){
+  return String(name||'creator').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,70)||'creator';
+}
+function getCreatorPublicLink(){
+  const name=(s.creatorProfile&&s.creatorProfile.name)||'Kaira';
+  return location.origin+'/?creator='+encodeURIComponent(creatorPublicSlug(name));
+}
+function renderCreatorPublicLink(){
+  const el=document.getElementById('creatorPublicLink');
+  if(el)el.value=getCreatorPublicLink();
+}
+async function copyCreatorPublicLink(){
+  const el=document.getElementById('creatorPublicLink');
+  const link=el?.value||getCreatorPublicLink();
+  try{await navigator.clipboard.writeText(link);alert('Fan profile link copied.');}
+  catch(e){if(el){el.select();document.execCommand('copy');alert('Fan profile link copied.');}}
 }
 
 
@@ -1999,20 +2047,22 @@ async function sendFanMessage(){
   let chatId=String(f.chatId||f.chatID||'');
   const creatorId=String(f.creatorId||f.userId||f.id||'');
   const msgId='msg_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
+  // Demo accounts intentionally have no server-side user id/session.
+  // Decide this BEFORE creating a chat so the hosted demo never sends
+  // fake/empty fan IDs to the production API. Real authenticated fans
+  // continue through the server-authoritative billing path.
+  const serverFanId = String(s.fanAccount?.id||s.auth?.user?.id||s.userId||'').trim();
+  const serverSignedIn = !!(s.auth?.status==='signed_in' && s.auth?.user?.id && String(s.auth?.user?.role||'fan').toLowerCase()==='fan');
+  const isDemoFan = !serverSignedIn || !serverFanId;
   try{
+    if(isDemoFan){
+      throw new Error('__DEMO_CHAT_FALLBACK__');
+    }
     if(!chatId && creatorId){
-      const cr=await fetch('/api/chats',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({fanId:String(s.fanAccount?.id||s.userId||s.id||''),creatorId})});
+      const cr=await fetch('/api/chats',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({fanId:serverFanId,creatorId})});
       const cd=await cr.json().catch(()=>({}));
       if(cr.ok&&cd.chat?.id){chatId=String(cd.chat.id);f.chatId=chatId;}
       else if(cr.status!==401&&cr.status!==404&&cr.status!==405)throw new Error(cd.error||'Chat could not be opened');
-    }
-    // Demo accounts intentionally have no server-side user id/session.
-    // On the hosted demo UI, use the local demo billing path instead of
-    // showing "Message was not charged". Real authenticated accounts still
-    // use the server-authoritative /api/messages billing path below.
-    const isDemoFan = !String(s.fanAccount?.id||s.userId||'').trim();
-    if(!chatId && isDemoFan){
-      throw new Error('__DEMO_CHAT_FALLBACK__');
     }
     if(!chatId)throw new Error('Chat is not connected to a production account');
     const res=await fetch('/api/messages',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:msgId,chatId,body:text})});
@@ -2312,7 +2362,7 @@ function unlockPost(id){
 function send(){let i=document.getElementById('msg'),t=i.value.trim();if(!t)return;if(!s.free&&s.balance<s.rate)return alert('Wallet balance insufficient. Recharge first.');if(!s.free){s.balance-=s.rate;s.earn+=s.rate;s.orders++;s.tx.push({d:'Paid message',a:s.rate,ts:Date.now()})}document.getElementById('chatbox').insertAdjacentHTML('beforeend',`<div class="bubble mine">${t}</div><div class="bubble">Received ❤️</div>`);i.value='';save()}
 function renderTransactions(){
   let now=Date.now(), thirty=30*24*60*60*1000;
-  let recent=(s.tx||[]).filter(t=>!t.ts||now-t.ts<=thirty).slice().reverse().slice(0,20);
+  let recent=(s.tx||[]).filter(t=>(!t.ts||now-t.ts<=thirty)&&(String(t.type||'').toLowerCase()==='wallet-recharge'||String(t.d||'').toLowerCase().includes('wallet recharge')||String(t.d||'').toLowerCase().includes('wallet top up')||String(t.d||'').toLowerCase().includes('wallet top-up'))).slice().reverse().slice(0,20);
   let fan=document.getElementById('fanHistoryList');
   if(fan) fan.innerHTML=recent.length?recent.map(t=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span>${t.d}</span><b>${money(t.a)}</b></div>`).join(''):'<div class="muted">No recent transactions.</div>';
   let admin=document.getElementById('adminTxList');
@@ -5029,5 +5079,65 @@ try{
 </script>
 
 <!-- CreatorChat STEP 243: production DB integration candidate -->
-</body>
+\n<div id="publicCreatorEntry" class="public-entry-gate" style="display:none!important">\n  <div class="public-entry-wrap">\n    <div class="public-entry-brand">CreatorChat</div>\n    <div class="public-entry-card">\n      <div id="publicCreatorAvatar" class="public-entry-avatar">CC</div>\n      <h2 id="publicCreatorName" style="text-align:center;margin:0">Creator Profile</h2>\n      <div id="publicCreatorBio" class="muted" style="text-align:center;margin-top:6px">Connect with your creator.</div>\n      <div id="publicCreatorStatus" class="public-entry-status"></div>\n      <div class="public-entry-tabs">\n        <button id="publicLoginTab" class="active" type="button" onclick="switchPublicAuth('login')">Fan Login</button>\n        <button id="publicRegisterTab" type="button" onclick="switchPublicAuth('register')">Create Account</button>\n      </div>\n      <div id="publicLoginForm">\n        <input id="publicFanLoginEmail" type="email" placeholder="Email" autocomplete="email">\n        <input id="publicFanLoginPassword" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanLogin()">🔐 Continue as Fan</button>\n      </div>\n      <div id="publicRegisterForm" style="display:none!important">\n        <input id="publicFanRegisterName" type="text" placeholder="Your name" autocomplete="name">\n        <input id="publicFanRegisterEmail" type="email" placeholder="Email" autocomplete="email" style="margin-top:8px">\n        <input id="publicFanRegisterPassword" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanRegister()">✨ Create Fan Account</button>\n      </div>\n      <div id="publicCreatorAuthStatus" class="public-entry-status"></div>\n      <div class="public-entry-note">🔒 This public link is Fan-only. Admin and Creator login options are hidden.</div>\n    </div>\n  </div>\n</div>\n\n<script id="creator-public-link-entry-24950">
+(function(){
+  if(window.__ccPublicEntry24950)return;window.__ccPublicEntry24950=true;
+  let creator=null;
+  function qs(){return new URLSearchParams(location.search).get('creator')||'';}
+  function setStatus(t){const e=document.getElementById('publicCreatorAuthStatus');if(e)e.textContent=t||'';}
+  function initials(n){return String(n||'CC').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'CC';}
+  function showGate(){document.body.classList.add('public-creator-entry');const g=document.getElementById('publicCreatorEntry');if(g)g.style.setProperty('display','block','important');}
+  function hideGate(){document.body.classList.remove('public-creator-entry');const g=document.getElementById('publicCreatorEntry');if(g)g.style.setProperty('display','none','important');}
+  window.switchPublicAuth=function(mode){
+    const login=mode==='login';
+    document.getElementById('publicLoginForm')?.style.setProperty('display',login?'block':'none','important');
+    document.getElementById('publicRegisterForm')?.style.setProperty('display',login?'none':'block','important');
+    document.getElementById('publicLoginTab')?.classList.toggle('active',login);
+    document.getElementById('publicRegisterTab')?.classList.toggle('active',!login);
+    setStatus('');
+  };
+  async function loadCreator(){
+    const slug=qs();if(!slug)return;showGate();
+    try{
+      const r=await fetch('/api/public/creator?slug='+encodeURIComponent(slug),{credentials:'include'});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!d.creator){
+        const n=document.getElementById('publicCreatorName');if(n)n.textContent='Creator not found';
+        const b=document.getElementById('publicCreatorBio');if(b)b.textContent='This creator link is invalid or unavailable.';
+        const tabs=document.querySelector('.public-entry-tabs');if(tabs)tabs.style.display='none';
+        document.getElementById('publicLoginForm')?.style.setProperty('display','none','important');
+        document.getElementById('publicRegisterForm')?.style.setProperty('display','none','important');
+        return;
+      }
+      creator=d.creator;
+      const n=document.getElementById('publicCreatorName');if(n)n.textContent=creator.displayName||creator.name||'Creator';
+      const b=document.getElementById('publicCreatorBio');if(b)b.textContent=creator.bio||'Connect with your creator.';
+      const a=document.getElementById('publicCreatorAvatar');if(a)a.textContent=initials(creator.displayName||creator.name);
+      const st=document.getElementById('publicCreatorStatus');if(st)st.textContent=creator.status==='active'?'Online profile':'Profile available';
+    }catch(e){setStatus('Unable to load this creator profile.');}
+  }
+  async function finishFanLogin(data){
+    if(!data?.user||String(data.user.role||'').toLowerCase()!=='fan')throw new Error('Fan account could not be signed in.');
+    if(typeof CreatorChatAuth!=='undefined')CreatorChatAuth.setSession(data.user,'server');
+    s.mode='fan';s.activeCreatorId=String(creator?.id||'');
+    const f=(s.fans||[])[0]||{id:'fan1',name:data.user.name||'Fan',messages:[]};
+    f.creatorId=String(creator?.id||'');f.chatPrice=Number(creator?.chatPricePaise||0)/100;f.name=data.user.name||f.name;f.userId=data.user.id;
+    s.activeFanId=f.id;s.fans=[f,...(s.fans||[]).filter(x=>x.id!==f.id)];
+    save();hideGate();nav();show('profile');renderPublicCreatorProfile();
+  }
+  window.submitPublicFanLogin=async function(){
+    const email=document.getElementById('publicFanLoginEmail')?.value.trim().toLowerCase(),password=document.getElementById('publicFanLoginPassword')?.value||'';
+    if(!email||!password)return setStatus('Enter your email and password.');
+    setStatus('Signing in…');
+    try{const r=await fetch('/api/auth/login',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password,role:'fan'})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Invalid fan credentials.');await finishFanLogin(d);}catch(e){setStatus(String(e.message||'Fan login failed.'));}
+  };
+  window.submitPublicFanRegister=async function(){
+    const name=document.getElementById('publicFanRegisterName')?.value.trim(),email=document.getElementById('publicFanRegisterEmail')?.value.trim().toLowerCase(),password=document.getElementById('publicFanRegisterPassword')?.value||'';
+    if(!name||!email||password.length<8)return setStatus('Enter your name, valid email and an 8+ character password.');
+    setStatus('Creating your fan account…');
+    try{const r=await fetch('/api/auth/register',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,password,role:'fan'})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Fan registration failed.');await finishFanLogin(d);}catch(e){setStatus(String(e.message||'Fan registration failed.'));}
+  };
+  loadCreator();
+})();
+</script>\n</body>
 </html>
