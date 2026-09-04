@@ -1,5 +1,5 @@
 {
-  "version": "249.5.0",
+  "version": "249.5.1",
   "status": "production-integration-complete",
   "routes": [
     "POST /api/auth/register",

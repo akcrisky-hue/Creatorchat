@@ -1516,7 +1516,7 @@ if(typeof s.supportEmail!=='string')s.supportEmail='';
 if(!Array.isArray(s.notifications))s.notifications=[];
 if(!s.notificationPrefs)s.notificationPrefs={creator:true,posts:true,gifts:true,system:true};
 if(!s.creatorProfile)s.creatorProfile={name:'Kaira',email:'',mobile:'',pic:'',cover:''};
-if(!Array.isArray(s.fans))s.fans=[{id:'fan1',name:'Demo Fan',email:'fan@example.com',mobile:'',chatPrice:0,messages:[]}];
+if(!Array.isArray(s.fans))s.fans=[{id:'fan1',name:'Demo Fan',email:'fan@example.com',mobile:'',chatPrice:Number(s.rate||29),messages:[]}];
 if(!s.chatAccess)s.chatAccess={};
 if(typeof s.payoutValue!=='string')s.payoutValue='';
 if(s.planVersion!==3){
@@ -1959,6 +1959,13 @@ function renderFans(){
   }).join('');
 }
 
+// Keep the built-in demo fan chat testable with the configured demo rate.
+try{
+  if(Array.isArray(s.fans)){
+    const demo=s.fans.find(x=>String(x.id)==='fan1');
+    if(demo && !Number(demo.chatPrice||0)) demo.chatPrice=Number(s.rate||29);
+  }
+}catch(e){}
 function getActiveFan(){
   return (s.fans||[]).find(x=>x.id===s.activeFanId) || (s.fans||[])[0];
 }
@@ -4252,14 +4259,14 @@ try{ensurePayoutState();enforcePayoutRoleVisibility();loadPayoutDetails();}catch
   </div>
 </div>
 
-<script id="step210-admin-mode-gate">
+<script id="step210-admin-mode-gate-24951">
 (function(){
   const PASSCODE='2580';
   window.openAdminModeGate=function(){
     const m=document.getElementById('adminModeGate');
     const i=document.getElementById('adminModeGateInput');
     const msg=document.getElementById('adminModeGateMessage');
-    if(m)m.style.setProperty('display','none','important');
+    if(m)m.style.setProperty('display','block','important');
     if(i){i.value='';setTimeout(()=>i.focus(),50);}
     if(msg)msg.textContent='';
   };
@@ -5079,7 +5086,7 @@ try{
 </script>
 
 <!-- CreatorChat STEP 243: production DB integration candidate -->
-\n<div id="publicCreatorEntry" class="public-entry-gate" style="display:none!important">\n  <div class="public-entry-wrap">\n    <div class="public-entry-brand">CreatorChat</div>\n    <div class="public-entry-card">\n      <div id="publicCreatorAvatar" class="public-entry-avatar">CC</div>\n      <h2 id="publicCreatorName" style="text-align:center;margin:0">Creator Profile</h2>\n      <div id="publicCreatorBio" class="muted" style="text-align:center;margin-top:6px">Connect with your creator.</div>\n      <div id="publicCreatorStatus" class="public-entry-status"></div>\n      <div class="public-entry-tabs">\n        <button id="publicLoginTab" class="active" type="button" onclick="switchPublicAuth('login')">Fan Login</button>\n        <button id="publicRegisterTab" type="button" onclick="switchPublicAuth('register')">Create Account</button>\n      </div>\n      <div id="publicLoginForm">\n        <input id="publicFanLoginEmail" type="email" placeholder="Email" autocomplete="email">\n        <input id="publicFanLoginPassword" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanLogin()">🔐 Continue as Fan</button>\n      </div>\n      <div id="publicRegisterForm" style="display:none!important">\n        <input id="publicFanRegisterName" type="text" placeholder="Your name" autocomplete="name">\n        <input id="publicFanRegisterEmail" type="email" placeholder="Email" autocomplete="email" style="margin-top:8px">\n        <input id="publicFanRegisterPassword" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanRegister()">✨ Create Fan Account</button>\n      </div>\n      <div id="publicCreatorAuthStatus" class="public-entry-status"></div>\n      <div class="public-entry-note">🔒 This public link is Fan-only. Admin and Creator login options are hidden.</div>\n    </div>\n  </div>\n</div>\n\n<script id="creator-public-link-entry-24950">
+\n<div id="publicCreatorEntry" class="public-entry-gate" style="display:none!important">\n  <div class="public-entry-wrap">\n    <div class="public-entry-brand">CreatorChat</div>\n    <div class="public-entry-card">\n      <div id="publicCreatorAvatar" class="public-entry-avatar">CC</div>\n      <h2 id="publicCreatorName" style="text-align:center;margin:0">Creator Profile</h2>\n      <div id="publicCreatorBio" class="muted" style="text-align:center;margin-top:6px">Connect with your creator.</div>\n      <div id="publicCreatorStatus" class="public-entry-status"></div>\n      <div class="public-entry-tabs">\n        <button id="publicLoginTab" class="active" type="button" onclick="switchPublicAuth('login')">Fan Login</button>\n        <button id="publicRegisterTab" type="button" onclick="switchPublicAuth('register')">Create Account</button>\n      </div>\n      <div id="publicLoginForm">\n        <input id="publicFanLoginEmail" type="email" placeholder="Email" autocomplete="email">\n        <input id="publicFanLoginPassword" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanLogin()">🔐 Continue as Fan</button>\n      </div>\n      <div id="publicRegisterForm" style="display:none!important">\n        <input id="publicFanRegisterName" type="text" placeholder="Your name" autocomplete="name">\n        <input id="publicFanRegisterEmail" type="email" placeholder="Email" autocomplete="email" style="margin-top:8px">\n        <input id="publicFanRegisterPassword" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanRegister()">✨ Create Fan Account</button>\n      </div>\n      <div id="publicCreatorAuthStatus" class="public-entry-status"></div>\n      <div class="public-entry-note">🔒 This public link is Fan-only. Admin and Creator login options are hidden.</div>\n    </div>\n  </div>\n</div>\n\n<script id="creator-public-link-entry-24951">
 (function(){
   if(window.__ccPublicEntry24950)return;window.__ccPublicEntry24950=true;
   let creator=null;
