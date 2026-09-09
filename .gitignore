@@ -1,0 +1,13 @@
+# Local secrets / environment files
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.*
+!backend/.env.example
+
+# Dependencies / local tooling
+node_modules/
+.vercel/
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+{
+  "rules": [
+    {
+      "allowed": {
+        "origins": ["https://YOUR-PRODUCTION-DOMAIN"],
+        "methods": ["GET", "PUT", "HEAD"],
+        "headers": ["Content-Type"],
+        "exposeHeaders": ["ETag"],
+        "maxAgeSeconds": 300
+      }
+    }
+  ]
+}

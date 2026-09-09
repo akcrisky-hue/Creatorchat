@@ -666,7 +666,7 @@ function renderFanChat(){hideFanChatPrices();
   markFanChatRead();
   box.innerHTML=(f.messages||[]).map(m=>{
     let media=m.media?(m.mediaType&&m.mediaType.startsWith('image/')?`<img src="${m.media}" style="max-width:100%;max-height:220px;border-radius:12px;display:block;margin-top:6px">`:m.mediaType&&m.mediaType.startsWith('video/')?`<video src="${m.media}" controls style="max-width:100%;max-height:240px;border-radius:12px;display:block;margin-top:6px"></video>`:m.mediaType&&m.mediaType.startsWith('audio/')?`<audio src="${m.media}" controls style="max-width:100%;margin-top:6px"></audio>`:''):'';
-    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='fan'?'#f4f1f8':'#fff0f7'}">${m.text||''}${media}<div class="chat-meta"><span>${m.from==='fan'?'You':'Creator'}</span><span>${chatTime(m.ts)}</span></div></div>`;
+    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='fan'?'#f4f1f8':'#fff0f7'}">${typeof sanitizeChatText==='function'?sanitizeChatText(m.text):String(m.text||'').replace(/<[^>]*>/g,'').trim()}${media}<div class="chat-meta"><span>${m.from==='fan'?'You':'Creator'}</span><span>${chatTime(m.ts)}</span></div></div>`;
   }).join('')||'<div class="muted">No messages yet.</div>';
   box.scrollTop=box.scrollHeight;
   updateFanChatBalance();
@@ -676,7 +676,7 @@ function renderAdminChat(){
   if(!box||!f)return;
   box.innerHTML=(f.messages||[]).map(m=>{
     let media=m.media ? (m.mediaType&&m.mediaType.startsWith('image/')?`<img src="${m.media}" style="max-width:100%;max-height:220px;border-radius:12px;display:block;margin-top:6px">`:m.mediaType&&m.mediaType.startsWith('video/')?`<video src="${m.media}" controls style="max-width:100%;max-height:240px;border-radius:12px;display:block;margin-top:6px"></video>`:m.mediaType&&m.mediaType.startsWith('audio/')?`<audio src="${m.media}" controls style="max-width:100%;margin-top:6px"></audio>`:''):'';
-    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='admin'?'#fff0f7':'#f4f1f8'}">${m.text||''}${media}<div class="chat-meta"><span>${m.from==='admin'?'You':'Fan'}</span><span>${chatTime(m.ts)}</span></div></div>`;
+    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='admin'?'#fff0f7':'#f4f1f8'}">${typeof sanitizeChatText==='function'?sanitizeChatText(m.text):String(m.text||'').replace(/<[^>]*>/g,'').trim()}${media}<div class="chat-meta"><span>${m.from==='admin'?'You':'Fan'}</span><span>${chatTime(m.ts)}</span></div></div>`;
   }).join('')||'<div class="muted">No messages yet.</div>';
   box.scrollTop=box.scrollHeight;
   f.messages.forEach(m=>{if(m.from==='fan')m.adminRead=true;});
@@ -784,7 +784,7 @@ function collectPostForm(){
   let photos=[...((document.getElementById('postPhoto')||{}).files||[])];
   let videos=[...((document.getElementById('postVideo')||{}).files||[])];
   let media=[...photos,...videos].map(f=>({name:f.name,type:f.type,size:f.size}));
-  return {title:t,text:x,access,price:access==='paid'?p:0,planId:access==='subscription'?planId:null,blur,media};
+  return {title:t,text:x,access,price:access==='paid'?p:0,planId:access==='subscription'?planId:null,blur,media,files:[...photos,...videos]};
 }
 function clearPostForm(){
   ['postTitle','postText','postPrice','postPhoto','postVideo'].forEach(id=>{let e=document.getElementById(id);if(!e)return;if(e.type==='file')e.value='';else e.value='';});
@@ -858,7 +858,7 @@ function unlockPost(id){
       s.balance-=post.price;post.unlocked=true;s.orders++;s.earn+=post.price;
       s.tx.push({d:'Paid post — '+post.title,a:post.price,ts:Date.now()});save();alert('Post unlocked (demo).');
     }
-function send(){let i=document.getElementById('msg'),t=i.value.trim();if(!t)return;if(!s.free&&s.balance<s.rate)return alert('Wallet balance insufficient. Recharge first.');if(!s.free){s.balance-=s.rate;s.earn+=s.rate;s.orders++;s.tx.push({d:'Paid message',a:s.rate,ts:Date.now()})}document.getElementById('chatbox').insertAdjacentHTML('beforeend',`<div class="bubble mine">${t}</div><div class="bubble">Received ❤️</div>`);i.value='';save()}
+function send(){let i=document.getElementById('msg'),t=i.value.trim();if(!t)return;if(!s.free&&s.balance<s.rate)return alert('Wallet balance insufficient. Recharge first.');if(!s.free){s.balance-=s.rate;s.earn+=s.rate;s.orders++;s.tx.push({d:'Paid message',a:s.rate,ts:Date.now()})}let box=document.getElementById('chatbox'),mine=document.createElement('div'),reply=document.createElement('div');mine.className='bubble mine';mine.textContent=t;reply.className='bubble';reply.textContent='Received ❤️';box.append(mine,reply);i.value='';save()}
 function renderTransactions(){
   let now=Date.now(), thirty=30*24*60*60*1000;
   let recent=(s.tx||[]).filter(t=>(!t.ts||now-t.ts<=thirty)&&(String(t.type||'').toLowerCase()==='wallet-recharge'||String(t.d||'').toLowerCase().includes('wallet recharge')||String(t.d||'').toLowerCase().includes('wallet top up')||String(t.d||'').toLowerCase().includes('wallet top-up'))).slice().reverse().slice(0,20);
@@ -1193,7 +1193,7 @@ const fanPostList=document.getElementById('fanPostList');if(fanPostList){
     if(autoSub&&!p.unlocked)p.unlocked=true;
     const heading=p.access==='subscription'?(plan?plan.name+' Subscription':'Subscription'):money(p.price);
     const body=open?(p.text||''):'🔒 Exclusive content — unlock to view.';
-    const media=open&&p.media?.length?`<div style="margin:8px 0;padding:16px;border-radius:12px;background:#f3eef9;text-align:center;font-size:28px">📸 🎥</div><div class="muted">📎 ${p.media.length} photo/video file(s)</div>`:p.media?.length?`<div style="margin:8px 0;padding:18px;border-radius:12px;background:#ddd;filter:blur(${p.blur||12}px);text-align:center;font-size:28px">📸 🎥</div><div class="muted">🔒 ${p.media.length} locked photo/video file(s)</div>`:'';
+    const media=open&&p.media?.length?`<div style="margin:8px 0">${p.media.map(m=>m.url?(m.type||'').startsWith('video/')?`<video src="${m.url}" controls style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0"></video>`:`<img src="${m.url}" alt="" style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0">`:'').join('')}</div><div class="muted">📎 ${p.media.length} photo/video file(s)</div>`:p.media?.length?`<div style="margin:8px 0;padding:18px;border-radius:12px;background:#ddd;filter:blur(${p.blur||12}px);text-align:center;font-size:28px">📸 🎥</div><div class="muted">🔒 ${p.media.length} locked photo/video file(s)</div>`:'';
     const action=open?'<span class="pill">✓ Unlocked</span>':`<button class="btn full" onclick="unlockPost(${p.id})">${p.access==='subscription'?'⭐ Subscribe to '+(plan?.name||'this plan'):'Unlock Post'}</button>`;
     return `<div class="card" style="padding:12px;margin:8px 0"><div class="row"><b>${p.title}</b><b>${p.access==='subscription'?'⭐ Subscription':money(p.price)}</b></div><p class="muted">${body}</p>${media}${action}</div>`;
   }).join(''):(fanPostFilter==='subscription'?'No subscription posts available.':fanPostFilter==='paid'?'No paid posts available.':'No posts available.');

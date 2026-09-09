@@ -1,6 +1,6 @@
 {
-  "version": "249.5.1",
-  "status": "production-integration-complete",
+  "version": "249.5.26",
+  "status": "pre-deployment-release-candidate",
   "routes": [
     "POST /api/auth/register",
     "POST /api/auth/login",
@@ -32,10 +32,15 @@
     "PATCH /api/admin/fans",
     "GET /api/analytics",
     "GET /api/earnings",
+    "POST /api/storage",
+    "DELETE /api/storage",
     "GET /api/settings",
     "PATCH /api/settings",
     "GET /api/export",
     "GET /api/health/db",
     "GET /api/health/app"
+  ],
+  "post_actions": [
+    "unlock"
   ]
 }

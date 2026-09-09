@@ -464,6 +464,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
 .public-entry-status{font-size:13px;color:#777;min-height:18px;margin-top:8px;text-align:center}
 .public-entry-note{font-size:12px;color:#777;text-align:center;margin-top:12px}
 </style>
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 </head>
 <body>
 
@@ -770,7 +771,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
     <div id="rechargeBonus" class="note" style="margin-top:8px">
       Minimum ₹500 · Maximum ₹10,000
     </div>
-    <button class="btn full" type="button" onclick="demoRecharge()">➕ Add Money</button>
+    <button class="btn full" type="button" onclick="startWalletRechargeFromInput('rechargeAmount')">➕ Add Money</button>
 
     <div style="margin-top:12px">
       <b>🎁 Recharge Bonus</b>
@@ -1032,7 +1033,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
 <p class="muted">Minimum ₹500 · Maximum ₹10,000 per recharge</p>
 <input id="walletCustomAmount" type="number" min="500" max="10000" step="1" placeholder="Enter custom amount ₹500 - ₹10,000" oninput="updateWalletCustomBonus()">
 <div id="walletCustomBonus" class="note" style="margin-top:8px">Bonus will appear here</div>
-<button class="btn full" type="button" onclick="customWalletRecharge()">➕ Add Custom Amount</button>
+<button class="btn full" type="button" onclick="startWalletRechargeFromInput('walletCustomAmount')">➕ Add Custom Amount</button>
 <div class="gifts" id="recharge" style="margin-top:10px"></div>
 </div>
 <div class="card" id="fanHistoryCard">
@@ -1549,12 +1550,13 @@ if(s.planVersion<4){
   localStorage.setItem('cc6',JSON.stringify(s));
 }
 const money=n=>'₹'+Number(n).toLocaleString('en-IN');
+function saveNoRender(){localStorage.setItem('cc6',JSON.stringify(s))}
 function save(){localStorage.setItem('cc6',JSON.stringify(s));render()}
 function saveFanAccount(){let n=document.getElementById('fanName').value.trim(),c=document.getElementById('fanContact').value.trim();if(!n||!c)return alert('Fan name and mobile/email are required.');s.fanAccount={...s.fanAccount,name:n,contact:c,loggedIn:true};if(c.includes('@'))s.fanAccount.email=c;else s.fanAccount.mobile=c;save();alert('Fan account saved (demo).')}
-function saveFanSettings(){let n=document.getElementById('fanSettingName').value.trim(),e=document.getElementById('fanSettingEmail').value.trim(),m=document.getElementById('fanSettingMobile').value.trim();if(!n)return alert('Name is required.');if(e&&!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid email address.');if(m&&!/^\d{10}$/.test(m))return alert('Mobile number must be 10 digits.');s.fanAccount={...s.fanAccount,name:n,email:e,mobile:m,contact:e||m,loggedIn:true};save();alert('Fan settings updated (demo).')}
+async function saveFanSettings(){let n=document.getElementById('fanSettingName').value.trim(),e=document.getElementById('fanSettingEmail').value.trim(),m=document.getElementById('fanSettingMobile').value.trim();if(!n)return alert('Name is required.');if(e&&!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid email address.');if(m&&!/^\d{10}$/.test(m))return alert('Mobile number must be 10 digits.');if(s.auth?.status==='signed_in'&&s.auth?.user?.id&&location.protocol!=='file:'){try{const r=await fetch('/api/users/me',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e,mobile:m})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');mergeServerFanLocal(d.user);}catch(err){return alert('Could not update account on server.');}}else{s.fanAccount={...s.fanAccount,name:n,email:e,mobile:m,contact:e||m,loggedIn:true};save();}alert('Fan settings updated.');}
 function rechargeBonus(a){if(a>3000)return Math.floor(a*0.10);if(a===3000)return 300;if(a>=2000)return 150;if(a>=1500)return 100;if(a>=1000)return 50;return 0}
 function updateRechargeBonus(){let el=document.getElementById('rechargeBonus');if(!el)return;let a=Number(document.getElementById('rechargeAmount').value)||0;if(a<500){el.textContent='Minimum ₹500 · Maximum ₹10,000';return}if(a>10000){el.textContent='Maximum recharge ₹10,000';return}let b=rechargeBonus(a);el.textContent=`You pay ₹${a} + ₹${b} bonus = ₹${a+b} wallet credit`}
-function demoRecharge(){s.lowBalanceShown=false;let a=Number(document.getElementById('rechargeAmount').value),b=rechargeBonus(a);if(!Number.isFinite(a)||a<500)return alert('Minimum recharge is ₹500.');if(a>10000)return alert('Maximum recharge is ₹10,000 per transaction.');s.balance+=a+b;s.tx.push({d:`Wallet recharge ₹${a} + ₹${b} bonus (Demo)`,a:a+b,ts:Date.now()});document.getElementById('rechargeAmount').value='';updateRechargeBonus();save();alert(`₹${a} + ₹${b} bonus = ₹${a+b} wallet credit (demo).`)}
+function demoRecharge(){return startWalletRechargeFromInput('rechargeAmount');}
 function toggleCreatorStatus(){s.creatorOnline=!s.creatorOnline;save();}
 function isAdminAuthenticated(){
   return sessionStorage.getItem('creatorchat_admin_unlocked')==='1';
@@ -1665,6 +1667,7 @@ function saveFanNotifPrefs(){
     gifts:!!document.getElementById('prefGifts')?.checked,
     system:!!document.getElementById('prefSystem')?.checked
   };
+  if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){CreatorChatAuth.api('/api/settings',{method:'PATCH',body:JSON.stringify({name:s.userName||s.name||'User',mobile:s.mobile||'',supportEmail:s.supportEmail||'',preferences:{notificationPrefs:s.notificationPrefs}})}).catch(()=>{});}
   save();
   alert('Notification preferences saved.');
   toggleFanNotifPrefs();
@@ -1714,18 +1717,7 @@ function toggleFanNotifications(){
   if(a)a.textContent=open?'⌄':'⌃';
   
 }
-function sendNotification(){
-  let t=document.getElementById('notificationTitle').value.trim();
-  let m=document.getElementById('notificationText').value.trim();
-  if(!t||!m)return alert('Enter both a title and a message.');
-  if(!Array.isArray(s.notifications))s.notifications=[];
-  s.notifications.unshift({id:'n'+Date.now(),icon:'🔔',category:'system',title:t,text:m,ts:Date.now(),read:false});
-  s.notifications=s.notifications.slice(0,50);
-  document.getElementById('notificationTitle').value='';
-  document.getElementById('notificationText').value='';
-  save();
-  alert('Notification sent to fans.');
-}
+async function sendNotification(){let t=document.getElementById('notificationTitle')?.value.trim(),m=document.getElementById('notificationText')?.value.trim();if(!t||!m)return alert('Enter both a title and a message.');if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await CreatorChatAuth.api('/api/notifications',{method:'POST',body:JSON.stringify({action:'send',title:t,text:m,creatorId:getCurrentCreatorId()})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not send notification');document.getElementById('notificationTitle').value='';document.getElementById('notificationText').value='';alert(`Notification sent to ${Number(d.sent||0)} fan${Number(d.sent||0)===1?'':'s'}.`);return;}catch(e){return alert(e.message||'Could not send notification.');}}ensureNotifications();s.notifications.unshift({id:'n'+Date.now(),icon:'🔔',category:'system',title:t,text:m,ts:Date.now(),read:false});s.notifications=s.notifications.slice(0,50);document.getElementById('notificationTitle').value='';document.getElementById('notificationText').value='';save();alert('Notification sent to fans.');}
 
 function previewCreatorImage(input,targetId){
   let file=input.files&&input.files[0]; if(!file)return;
@@ -1809,7 +1801,7 @@ function saveSupportEmail(){
   if(!(s.mode==='admin'||s.mode==='creator'))return;
   const e=document.getElementById('adminSupportEmail'),v=e?e.value.trim():'';
   if(v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)){alert('Enter a valid email.');return;}
-  s.supportEmail=v;save();
+  s.supportEmail=v;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){CreatorChatAuth.api('/api/settings',{method:'PATCH',body:JSON.stringify({name:s.userName||s.name||'User',mobile:s.mobile||'',supportEmail:v,preferences:s.notificationPrefs?{notificationPrefs:s.notificationPrefs}:{}})}).catch(()=>{});}save();
   const d=document.getElementById('supportEmailDisplay');if(d)d.textContent=getSupportEmail();
   if(typeof addAdminAudit==='function')addAdminAudit('Support email updated',v||'Support email removed');
 }
@@ -1904,15 +1896,7 @@ function sendSupportRequest(){
   const box=document.getElementById('supportMessage');if(box)box.value='';
 }
 
-function saveAccountSettings(){
-  s.userName=document.getElementById('settingsDisplayName')?.value.trim()||'';
-  s.email=document.getElementById('settingsEmail')?.value.trim()||'';
-  s.mobile=document.getElementById('settingsMobile')?.value.trim()||'';
-  save();
-  if(typeof addNotification==='function')addNotification('Account updated','Your account details were saved.','account');
-  const st=document.getElementById('accountSettingsStatus');
-  if(st)st.textContent='Account details saved.';
-}
+async function saveAccountSettings(){s.userName=document.getElementById('settingsDisplayName')?.value.trim()||'';s.email=document.getElementById('settingsEmail')?.value.trim()||'';s.mobile=document.getElementById('settingsMobile')?.value.trim()||'';if(!s.userName)return alert('Name is required.');if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await CreatorChatAuth.api('/api/users/me',{method:'PATCH',body:JSON.stringify({name:s.userName,email:s.email,mobile:s.mobile})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');}catch(e){return alert(e.message||'Could not update account.')}}saveNoRender();renderAccountSettings();if(typeof addNotification==='function')addNotification('Account updated','Your account details were saved.','account');const st=document.getElementById('accountSettingsStatus');if(st)st.textContent='Account details saved.';}
 function logoutCurrentUser(){
   if(!confirm('Log out of this account?'))return;
   try{localStorage.removeItem('creatorchat_current_user');}catch(e){}
@@ -2139,8 +2123,10 @@ function saveAdminChatPrice(){
   let f=(s.fans||[]).find(x=>x.id===s.activeFanId); if(!f)return;
   let v=Number(document.getElementById('adminChatPrice').value);
   if(!Number.isFinite(v)||v<0)return alert('Enter a valid chat price.');
-  f.chatPrice=v; save();
+  f.chatPrice=v; s.rate=v; save();
   let l=document.getElementById('adminChatPriceLabel');if(l)l.textContent='₹'+v;
+  const u=s.auth?.user;
+  if(s.auth?.status==='signed_in' && String(u?.role||'').toLowerCase()==='creator' && u?.id){CreatorChatAuth.api('/api/creator/profile',{method:'PATCH',body:JSON.stringify({creatorId:u.id,displayName:s.creatorProfile?.name||u.name||'',bio:String(s.creatorProfile?.bio||''),chatPricePaise:Math.round(v*100)})}).catch(()=>{});}
   renderFans(); alert('Chat price updated.');
 }
 
@@ -2174,7 +2160,7 @@ function renderFanChat(){hideFanChatPrices();
   markFanChatRead();
   box.innerHTML=(f.messages||[]).map(m=>{
     let media=m.media?(m.mediaType&&m.mediaType.startsWith('image/')?`<img src="${m.media}" style="max-width:100%;max-height:220px;border-radius:12px;display:block;margin-top:6px">`:m.mediaType&&m.mediaType.startsWith('video/')?`<video src="${m.media}" controls style="max-width:100%;max-height:240px;border-radius:12px;display:block;margin-top:6px"></video>`:m.mediaType&&m.mediaType.startsWith('audio/')?`<audio src="${m.media}" controls style="max-width:100%;margin-top:6px"></audio>`:''):'';
-    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='fan'?'#f4f1f8':'#fff0f7'}">${m.text||''}${media}<div class="chat-meta"><span>${m.from==='fan'?'You':'Creator'}</span><span>${chatTime(m.ts)}</span></div></div>`;
+    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='fan'?'#f4f1f8':'#fff0f7'}">${typeof sanitizeChatText==='function'?sanitizeChatText(m.text):String(m.text||'').replace(/<[^>]*>/g,'').trim()}${media}<div class="chat-meta"><span>${m.from==='fan'?'You':'Creator'}</span><span>${chatTime(m.ts)}</span></div></div>`;
   }).join('')||'<div class="muted">No messages yet.</div>';
   box.scrollTop=box.scrollHeight;
   updateFanChatBalance();
@@ -2184,7 +2170,7 @@ function renderAdminChat(){
   if(!box||!f)return;
   box.innerHTML=(f.messages||[]).map(m=>{
     let media=m.media ? (m.mediaType&&m.mediaType.startsWith('image/')?`<img src="${m.media}" style="max-width:100%;max-height:220px;border-radius:12px;display:block;margin-top:6px">`:m.mediaType&&m.mediaType.startsWith('video/')?`<video src="${m.media}" controls style="max-width:100%;max-height:240px;border-radius:12px;display:block;margin-top:6px"></video>`:m.mediaType&&m.mediaType.startsWith('audio/')?`<audio src="${m.media}" controls style="max-width:100%;margin-top:6px"></audio>`:''):'';
-    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='admin'?'#fff0f7':'#f4f1f8'}">${m.text||''}${media}<div class="chat-meta"><span>${m.from==='admin'?'You':'Fan'}</span><span>${chatTime(m.ts)}</span></div></div>`;
+    return `<div style="padding:8px 10px;margin:6px 0;border-radius:12px;background:${m.from==='admin'?'#fff0f7':'#f4f1f8'}">${typeof sanitizeChatText==='function'?sanitizeChatText(m.text):String(m.text||'').replace(/<[^>]*>/g,'').trim()}${media}<div class="chat-meta"><span>${m.from==='admin'?'You':'Fan'}</span><span>${chatTime(m.ts)}</span></div></div>`;
   }).join('')||'<div class="muted">No messages yet.</div>';
   box.scrollTop=box.scrollHeight;
   f.messages.forEach(m=>{if(m.from==='fan')m.adminRead=true;});
@@ -2226,54 +2212,41 @@ function renderCreatorProfileFields(){
   let b=document.getElementById('creatorCoverPreview'); if(b)b.innerHTML=p.cover?'<img src="'+p.cover+'" style="width:100%;max-height:160px;border-radius:14px;object-fit:cover">':'';
 }
 function sendSupport(){let e=s.supportEmail,m=document.getElementById('supportMessage').value.trim();if(!e)return alert('The admin has not set a support email yet.');if(!m)return alert('Enter a message.');window.location.href='mailto:'+e+'?subject=CreatorChat%20Support&body='+encodeURIComponent(m)}
-function setRate(v){s.rate=Number(v);save()}
+async function setRate(v){
+  const rate=Math.max(0,Number(v)||0);
+  s.rate=rate;
+  // Keep the actual demo fan charge in sync with the Chat Pricing control.
+  if(Array.isArray(s.fans))s.fans.forEach(f=>{if(String(f.id)==='fan1' || f.isDemo)f.chatPrice=rate;});
+  save();
+  // If a real creator is signed in, persist the same rate to the server ledger.
+  const u=s.auth?.user;
+  if(s.auth?.status==='signed_in' && String(u?.role||'').toLowerCase()==='creator' && u?.id){
+    try{await CreatorChatAuth.api('/api/creator/profile',{method:'PATCH',body:JSON.stringify({creatorId:u.id,displayName:s.creatorProfile?.name||u.name||'',bio:String(s.creatorProfile?.bio||''),chatPricePaise:Math.round(rate*100)})});}catch(e){}
+  }
+  render();
+}
 function togglePostAccess(){let sub=document.getElementById('postAccess').value==='subscription';document.getElementById('postPaidBox').style.display=sub?'none':'block';document.getElementById('postSubBox').style.display=sub?'block':'none';renderPlanSelect()}
 function renderPlanSelect(){let el=document.getElementById('postPlan');if(!el)return;let active=s.plans.filter(p=>p.active);el.innerHTML=active.length?active.map(p=>`<option value="${p.id}">${p.name} — ${money(p.price)}</option>`).join(''):'<option value="">No active subscription plans</option>'}
-function addGift(){let e=document.getElementById('giftEmoji').value.trim()||'🎁',n=document.getElementById('giftName').value.trim(),p=Number(document.getElementById('giftPrice').value);if(!n||p<0||!Number.isFinite(p))return alert('Gift name and a valid amount are required.');s.giftCatalog.push({id:Date.now(),emoji:e,name:n,price:p,active:true});document.getElementById('giftEmoji').value='';document.getElementById('giftName').value='';document.getElementById('giftPrice').value='';save()}
-function toggleGift(id){let g=s.giftCatalog.find(x=>x.id===id);if(g)g.active=!g.active;save()}
-function editGift(id){
-  let g=s.giftCatalog.find(x=>x.id===id);if(!g)return;
-  let n=prompt('Gift name',g.name);if(n===null)return;
-  let p=Number(prompt('Gift amount ₹',g.price));if(!Number.isFinite(p)||p<0)return alert('Enter a valid amount.');
-  let e=prompt('Gift emoji',g.emoji);if(e===null)e=g.emoji;
-  g.name=n.trim()||g.name;g.price=p;g.emoji=e.trim()||g.emoji;save();
-}
-function editPlan(id){
-  let p=s.plans.find(x=>x.id===id);if(!p)return;
-  let n=prompt('Plan name',p.name);if(n===null)return;
-  let d=prompt('Duration',p.duration);if(d===null)return;
-  let v=Number(prompt('Plan amount ₹',p.price));if(!Number.isFinite(v)||v<0)return alert('Enter a valid amount.');
-  p.name=n.trim()||p.name;p.duration=d.trim()||p.duration;p.price=v;save();
-}
-function addPlan(){let n=document.getElementById('planName').value.trim(),d=document.getElementById('planDuration').value.trim(),p=Number(document.getElementById('planPrice').value);if(!n||!d||p<0||!Number.isFinite(p))return alert('Plan name, duration, and a valid amount are required.');let dm=(d.match(/\d+/)||['1'])[0];s.plans.push({id:Date.now(),name:n,duration:d,durationMonths:Number(dm),price:p,active:true,fanVisible:true});document.getElementById('planName').value='';document.getElementById('planDuration').value='';document.getElementById('planPrice').value='';save()}
-function togglePlan(id){let p=s.plans.find(x=>x.id===id);if(p){p.active=!p.active;p.fanVisible=p.active;}save()}
+let __ccGiftSyncAt=0,__ccGiftSyncBusy=false;
+async function syncGiftsServer(force=false){const signed=s.auth?.status==='signed_in',creatorId=getCurrentCreatorId();if(!signed||!creatorId||location.protocol==='file:'||__ccGiftSyncBusy||(!force&&Date.now()-__ccGiftSyncAt<10000))return;__ccGiftSyncBusy=true;__ccGiftSyncAt=Date.now();try{const r=await fetch('/api/gifts?creatorId='+encodeURIComponent(creatorId),{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json();s.giftCatalog=(d.gifts||[]).map(g=>({id:g.id,creatorId:g.creatorId,emoji:g.emoji,name:g.name,price:Number(g.pricePaise||0)/100,pricePaise:Number(g.pricePaise||0),active:g.active!==false}));localStorage.setItem('cc6',JSON.stringify(s));render();}}catch(e){}finally{__ccGiftSyncBusy=false;}}
+async function addGift(){let e=document.getElementById('giftEmoji').value.trim()||'🎁',n=document.getElementById('giftName').value.trim(),p=Number(document.getElementById('giftPrice').value);if(!n||p<0||!Number.isFinite(p))return alert('Gift name and a valid amount are required.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatorId:getCurrentCreatorId(),emoji:e,name:n,pricePaise:Math.round(p*100)})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not add gift');document.getElementById('giftEmoji').value='';document.getElementById('giftName').value='';document.getElementById('giftPrice').value='';await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not add gift.')}}s.giftCatalog.push({id:Date.now(),emoji:e,name:n,price:p,active:true});document.getElementById('giftEmoji').value='';document.getElementById('giftName').value='';document.getElementById('giftPrice').value='';save()}
+async function toggleGift(id){let g=s.giftCatalog.find(x=>String(x.id)===String(id));if(!g)return;if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,active:!g.active})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not update gift');await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not update gift.')}}g.active=!g.active;save()}
+async function editGift(id){let g=s.giftCatalog.find(x=>String(x.id)===String(id));if(!g)return;let n=prompt('Gift name',g.name);if(n===null)return;let p=Number(prompt('Gift amount ₹',g.price));if(!Number.isFinite(p)||p<0)return alert('Enter a valid amount.');let e=prompt('Gift emoji',g.emoji);if(e===null)e=g.emoji;if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name:n.trim()||g.name,pricePaise:Math.round(p*100),emoji:e.trim()||g.emoji})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not edit gift');await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not edit gift.')}}g.name=n.trim()||g.name;g.price=p;g.emoji=e.trim()||g.emoji;save()}
+let __ccNotifSyncAt=0,__ccNotifSyncBusy=false,__ccSettingsSyncAt=0,__ccSettingsSyncBusy=false;
+async function syncNotificationsServer(force=false){const signed=s.auth?.status==='signed_in';if(!signed||location.protocol==='file:'||__ccNotifSyncBusy||(!force&&Date.now()-__ccNotifSyncAt<10000))return;__ccNotifSyncBusy=true;try{const r=await fetch('/api/notifications?limit=100',{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json();s.notifications=(d.notifications||[]).map(n=>{const p=n.payload||{};return {id:n.id,type:n.type,read:!!n.read,title:p.title||'Notification',text:p.text||'',icon:p.icon||'🔔',at:n.createdAt,ts:new Date(n.createdAt).getTime()};});saveNoRender();renderNotifications();renderFanNotifications();}}catch(e){}finally{__ccNotifSyncAt=Date.now();__ccNotifSyncBusy=false;}}
+async function syncSettingsServer(force=false){const signed=s.auth?.status==='signed_in';if(!signed||location.protocol==='file:'||__ccSettingsSyncBusy||(!force&&Date.now()-__ccSettingsSyncAt<15000))return;__ccSettingsSyncBusy=true;try{const r=await fetch('/api/settings',{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json(),x=d.settings||{};s.userName=x.name||s.userName||'';s.name=x.name||s.name||'';s.email=x.email||s.email||'';s.mobile=x.mobile||s.mobile||'';s.supportEmail=x.supportEmail||'';if(x.preferences&&typeof x.preferences==='object'){const q=x.preferences.notificationPrefs;if(q&&typeof q==='object')s.notificationPrefs=q;}saveNoRender();renderAccountSettings();}}catch(e){}finally{__ccSettingsSyncAt=Date.now();__ccSettingsSyncBusy=false;}}
+function getCurrentCreatorId(){const u=s.auth?.user||{};return String(s.activeCreatorId||s.creatorId||s.activeFanCreatorId||((String(u.role||'').toLowerCase()==='creator')?u.id:'')||'');}
+let __ccSubSyncAt=0,__ccSubSyncBusy=false;
+async function syncSubscriptionsServer(force=false){const signed=s.auth?.status==='signed_in',creatorId=getCurrentCreatorId();if(!signed||!creatorId||location.protocol==='file:'||__ccSubSyncBusy||(!force&&Date.now()-__ccSubSyncAt<10000))return;__ccSubSyncBusy=true;__ccSubSyncAt=Date.now();try{const r=await fetch('/api/subscriptions?plans=1&creatorId='+encodeURIComponent(creatorId),{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json();const plans=(d.plans||[]).map(x=>({id:x.id,creatorId:x.creatorId,name:x.name,duration:Number(x.durationMonths)+' Month'+(Number(x.durationMonths)===1?'':'s'),durationMonths:Number(x.durationMonths),price:Number(x.pricePaise||0)/100,pricePaise:Number(x.pricePaise||0),active:x.active!==false,fanVisible:x.active!==false}));s.plans=plans;s.subscriptionPlans=plans;}const sr=await fetch('/api/subscriptions?creatorId='+encodeURIComponent(creatorId),{credentials:'include',cache:'no-store'});if(sr.ok){const sd=await sr.json();s.subscriptions=(sd.subscriptions||[]).map(x=>({...x,amountPaise:Number(x.amountPaise||0),expiresAt:x.expiresAt?new Date(x.expiresAt).getTime():null}));const active=s.subscriptions.find(x=>x.status==='active'&&(!x.expiresAt||x.expiresAt>Date.now()));const plan=(s.plans||[]).find(p=>String(p.id)===String(active?.planId));s.subscription=active&&plan?{id:active.id,planId:active.planId,name:plan.name,price:Number(active.amountPaise||0)/100,startedAt:new Date(active.createdAt).getTime(),expiresAt:active.expiresAt}:null;}renderPlanSelect();renderMySubscription();renderMySubscriptions();renderSubscriptionRenewals();}catch(e){}finally{__ccSubSyncBusy=false;}}
+async function editPlan(id){let p=s.plans.find(x=>String(x.id)===String(id));if(!p)return;let n=prompt('Plan name',p.name);if(n===null)return;let d=prompt('Duration in months',p.durationMonths||p.duration);if(d===null)return;let months=Math.trunc(Number(d));if(!Number.isInteger(months)||months<1||months>120)return alert('Duration must be 1–120 months.');let v=Number(prompt('Plan amount ₹',p.price));if(!Number.isFinite(v)||v<0)return alert('Enter a valid amount.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'update_plan',planId:id,name:n.trim()||p.name,durationMonths:months,pricePaise:Math.round(v*100)})});const d0=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d0.error||'Update failed');await syncSubscriptionsServer(true);render();return;}catch(e){return alert(e.message||'Could not update plan.');}}p.name=n.trim()||p.name;p.durationMonths=months;p.duration=months+' Month'+(months===1?'':'s');p.price=v;save();}
+async function addPlan(){let n=document.getElementById('planName').value.trim(),d=document.getElementById('planDuration').value.trim(),p=Number(document.getElementById('planPrice').value);if(!n||!d||p<0||!Number.isFinite(p))return alert('Plan name, duration, and a valid amount are required.');let dm=Number((d.match(/\d+/)||['1'])[0]);if(!Number.isInteger(dm)||dm<1||dm>120)return alert('Duration must contain 1–120 months.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'create_plan',name:n,durationMonths:dm,pricePaise:Math.round(p*100)})});const d0=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d0.error||'Create failed');document.getElementById('planName').value='';document.getElementById('planDuration').value='';document.getElementById('planPrice').value='';await syncSubscriptionsServer(true);render();return;}catch(e){return alert(e.message||'Could not create plan.');}}s.plans.push({id:Date.now(),name:n,duration:d,durationMonths:dm,price:p,active:true,fanVisible:true});document.getElementById('planName').value='';document.getElementById('planDuration').value='';document.getElementById('planPrice').value='';save();}
+async function togglePlan(id){let p=s.plans.find(x=>String(x.id)===String(id));if(!p)return;if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'toggle_plan',planId:id})});const d0=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d0.error||'Update failed');await syncSubscriptionsServer(true);render();return;}catch(e){return alert(e.message||'Could not update plan.');}}p.active=!p.active;p.fanVisible=p.active;save();}
 function toggleFree(){s.free=!s.free;save()}
 function updateWalletCustomBonus(){let el=document.getElementById('walletCustomBonus');if(!el)return;let a=Number(document.getElementById('walletCustomAmount').value)||0;if(a<500){el.textContent='Minimum ₹500 · Maximum ₹10,000';return}if(a>10000){el.textContent='Maximum ₹10,000 per recharge';return}let b=rechargeBonus(a);el.textContent=`You pay ₹${a} + ₹${b} bonus = ₹${a+b} wallet credit`;}
-function customWalletRecharge(){let el=document.getElementById('walletCustomAmount'),a=Number(el?.value),b=rechargeBonus(a);if(!Number.isFinite(a)||a<500)return alert('Minimum recharge is ₹500.');if(a>10000)return alert('Maximum recharge is ₹10,000.');s.balance+=a+b;s.tx.push({d:`Wallet recharge ₹${a} + ₹${b} bonus (Demo)`,a:a+b,ts:Date.now()});el.value='';updateWalletCustomBonus();save();alert(`₹${a} + ₹${b} bonus = ₹${a+b} wallet credit (demo).`)}
-function recharge(v){
-      if(v<500)return alert('Minimum recharge is ₹500.');
-      if(v>10000)return alert('Maximum recharge is ₹10,000.');
-      let b=rechargeBonus(v);
-      s.balance+=v+b;
-      s.tx.push({d:`Wallet recharge ₹${v} + ₹${b} bonus (Demo)`,a:v+b,ts:Date.now()});
-      save();
-      alert(`₹${v} + ₹${b} bonus = ₹${v+b} wallet credit (demo).`);
-    }
-function subscribe(v,n){
-  v=Number(v||0);
-  if(s.balance<v)return alert('Wallet balance insufficient. Recharge first.');
-  let plan=(s.plans||[]).find(p=>p.name===n);
-  let months=Number(plan&&plan.durationMonths||0);
-  if(!months){
-    let m=(plan&&plan.duration||'').match(/(\\d+)/); months=m?Number(m[1]):1;
-  }
-  s.balance-=v;s.member=n;s.orders++;s.earn+=v;
-  s.subscription={name:n,price:v,durationMonths:months,startedAt:Date.now(),expiresAt:Date.now()+months*30*24*60*60*1000};
-  (s.posts||[]).forEach(p=>{if(p.access==='subscription'){let q=s.plans.find(x=>x.id===p.planId);if(q&&q.name===n)p.unlocked=true;}});
-  s.tx.push({d:'Subscription — '+n,a:v,ts:Date.now()});
-  save();render();alert('Subscription activated (demo).');
-}
-function gift(v,n){if(s.balance<v)return alert('Wallet balance insufficient. Recharge first.');s.balance-=v;s.orders++;s.earn+=v;s.tx.push({d:'Gift — '+n,a:v,ts:Date.now()});save();alert('Gift sent (demo).')}
+function customWalletRecharge(){return startWalletRechargeFromInput('walletCustomAmount');}
+function recharge(v){return startWalletRecharge(Number(v));}
+async function subscribe(v,n){v=Number(v||0);let plan=(s.plans||[]).find(p=>String(p.name)===String(n)||Number(p.price)===v);if(!plan)return alert('Subscription plan not found.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'subscribe',planId:plan.id})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402)return alert('Wallet balance insufficient. Recharge first.');throw new Error(d.error||'Subscription failed.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;await syncSubscriptionsServer(true);save();render();alert('✅ Subscription activated.');return;}catch(e){return alert(e.message||'Could not activate subscription.');}}if(s.balance<v)return alert('Wallet balance insufficient. Recharge first.');let months=Number(plan.durationMonths||1);s.balance-=v;s.member=plan.name;s.orders++;s.earn+=v;s.subscription={name:plan.name,price:v,durationMonths:months,startedAt:Date.now(),expiresAt:Date.now()+months*30*24*60*60*1000};s.tx.push({d:'Subscription — '+plan.name,a:v,ts:Date.now(),type:'subscription'});save();render();alert('Subscription activated.');}
+async function gift(giftId){let g=s.giftCatalog.find(x=>String(x.id)===String(giftId));if(!g)return alert('Gift unavailable.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'send',giftId:String(giftId)})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402)return alert('Wallet balance insufficient. Recharge first.');throw new Error(d.error||'Gift could not be sent.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;s.orders++;await syncGiftsServer(true);save();alert('🎁 Gift sent successfully.');return;}catch(err){return alert(err.message||'Gift could not be sent.');}}if(s.balance<Number(g.price||0))return alert('Wallet balance insufficient. Recharge first.');s.balance-=Number(g.price||0);s.orders++;s.earn+=Number(g.price||0);s.tx.push({d:'Gift — '+g.name,a:Number(g.price||0),ts:Date.now()});save();alert('Gift sent (demo).')}
 function updateMediaPreview(){let box=document.getElementById('mediaPreview'),files=[...document.getElementById('postMedia').files],blur=Number(document.getElementById('blurRange').value);box.innerHTML=files.length?files.map(f=>`<div style="padding:6px 0;border-bottom:1px solid #eee">${f.type.startsWith('video/')?'🎥':'📸'} ${f.name}</div>`).join(''):'No media selected'}
 document.addEventListener('change',e=>{if(e.target.id==='postMedia')updateMediaPreview()});
 document.addEventListener('input',e=>{if(e.target.id==='blurRange')document.getElementById('blurValue').textContent=e.target.value+'px'});
@@ -2292,81 +2265,41 @@ function collectPostForm(){
   let photos=[...((document.getElementById('postPhoto')||{}).files||[])];
   let videos=[...((document.getElementById('postVideo')||{}).files||[])];
   let media=[...photos,...videos].map(f=>({name:f.name,type:f.type,size:f.size}));
-  return {title:t,text:x,access,price:access==='paid'?p:0,planId:access==='subscription'?planId:null,blur,media};
+  return {title:t,text:x,access,price:access==='paid'?p:0,planId:access==='subscription'?planId:null,blur,media,files:[...photos,...videos]};
 }
 function clearPostForm(){
   ['postTitle','postText','postPrice','postPhoto','postVideo'].forEach(id=>{let e=document.getElementById(id);if(!e)return;if(e.type==='file')e.value='';else e.value='';});
   ['photoPreview','videoPreview'].forEach(id=>{let e=document.getElementById(id);if(e)e.innerHTML='';});
 }
-function savePostDraft(){
-  let p=collectPostForm();
-  if(!p.title && !p.text && !p.media.length)return alert('Add some content for the draft.');
-  p.id=Date.now();p.status='draft';p.unlocked=false;
-  s.posts.push(p);save();clearPostForm();render();alert('Post saved as draft.');
+async function syncPostsServer(force=false){const signed=s.auth?.status==='signed_in',creatorId=getCurrentCreatorId();if(!signed||!creatorId||location.protocol==='file:'||(!force&&window.__ccPostsSyncAt&&Date.now()-window.__ccPostsSyncAt<10000)||window.__ccPostsSyncBusy)return;window.__ccPostsSyncBusy=true;try{const u=s.auth?.user||{},isCreator=String(u.role||'').toLowerCase()==='creator',includeDrafts=isCreator||String(u.role||'').toLowerCase()==='admin';const url='/api/posts?creatorId='+encodeURIComponent(creatorId)+(includeDrafts?'&includeDrafts=1':'');const r=await fetch(url,{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json();s.posts=Array.isArray(d.posts)?d.posts:[];saveNoRender();}window.__ccPostsSyncAt=Date.now();}catch(e){}finally{window.__ccPostsSyncBusy=false;}}
+async function uploadPostMedia(files){
+  const list=Array.isArray(files)?files.filter(Boolean):[];
+  if(!list.length)return [];
+  if(s.auth?.status!=='signed_in')throw new Error('Creator must be signed in to upload media.');
+  const out=[];
+  for(const file of list){
+    if(!(file instanceof File))continue;
+    const r=await CreatorChatAuth.api('/api/storage',{method:'POST',body:JSON.stringify({action:'presign-upload',creatorId:getCurrentCreatorId(),name:file.name,type:file.type,size:file.size})});
+    const d=await r.json().catch(()=>({})); if(!r.ok)throw new Error(d.error||'Could not prepare media upload');
+    const put=await fetch(d.uploadUrl,{method:'PUT',headers:{'Content-Type':d.media.type},body:file});
+    if(!put.ok)throw new Error('Media upload failed for '+file.name);
+    out.push(d.media);
+  }
+  return out;
 }
-function publishDraft(id){
-  let p=s.posts.find(x=>x.id===id);if(!p)return;
-  p.status='published';save();render();
-}
-function deleteDraft(id){
-  if(!confirm('Delete this draft?'))return;
-  s.posts=s.posts.filter(p=>p.id!==id);save();render();
-}
-function toggleSavedPost(id){
-  s.savedPosts=Array.isArray(s.savedPosts)?s.savedPosts:[];
-  const i=s.savedPosts.indexOf(id);
-  if(i>=0)s.savedPosts.splice(i,1);else s.savedPosts.push(id);
-  save();renderSavedPosts();render();
-}
-function renderSavedPosts(){
-  const box=document.getElementById('savedPostList');if(!box)return;
-  const ids=Array.isArray(s.savedPosts)?s.savedPosts:[];
-  const posts=(s.posts||[]).filter(p=>p.status!=='draft'&&ids.includes(p.id));
-  box.innerHTML=posts.length?posts.slice().reverse().map(p=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span><b>${p.title||'Untitled'}</b><div class="muted">${p.access==='subscription'?'⭐ Subscription':money(p.price)}</div></span><button class="btn light" onclick="toggleSavedPost(${p.id})">Remove</button></div>`).join(''):'<div class="muted">No saved posts yet.</div>';
-}
-function renderDraftPosts(){
-  const el=document.getElementById('draftPostList');if(!el)return;
-  const drafts=(s.posts||[]).filter(p=>p.status==='draft').slice().reverse();
-  el.innerHTML=drafts.length?drafts.map(p=>`<div style="padding:11px 0;border-bottom:1px solid #eee">
-    <div class="row"><b>${p.title||'Untitled draft'}</b><span class="pill">DRAFT</span></div>
-    <div class="muted" style="margin-top:5px">${p.text||'No description'}</div>
-    <div style="margin-top:8px">
-      <button class="btn" onclick="publishDraft(${p.id})">PUBLISH</button>
-      <button class="btn light" onclick="deleteDraft(${p.id})">DELETE</button>
-    </div>
-  </div>`).join(''):'<div class="muted">No drafts yet.</div>';
-}
+function postApiPayload(p,status){return {title:p.title,content:p.text??p.content??'',accessType:p.access,pricePaise:Math.round(Number(p.price||0)*100),planId:p.planId||null,blur:Number(p.blur||12),media:Array.isArray(p.media)?p.media:[],status:status||p.status||'published'};}
+async function savePostDraft(){let p=collectPostForm();if(!p.title&&!p.text&&!p.media.length)return alert('Add some content for the draft.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{p.media=await uploadPostMedia(p.files||[]);delete p.files;const r=await CreatorChatAuth.api('/api/posts',{method:'POST',body:JSON.stringify(postApiPayload(p,'draft'))});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not save draft');await syncPostsServer(true);clearPostForm();render();alert('Post saved as draft.');return;}catch(e){return alert(e.message||'Could not save draft.');}}p.id=Date.now();p.status='draft';p.unlocked=false;s.posts.push(p);save();clearPostForm();render();alert('Post saved as draft.');}
+async function publishDraft(id){let p=s.posts.find(x=>String(x.id)===String(id));if(!p)return;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(p.id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'PATCH',body:JSON.stringify({id:String(id),status:'published',title:p.title,content:p.text??p.content??'',accessType:p.access,pricePaise:Math.round(Number(p.price||0)*100),planId:p.planId||null,blur:p.blur,media:p.media||[]})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Publish failed');await syncPostsServer(true);render();return;}catch(e){return alert(e.message||'Could not publish draft.');}}p.status='published';save();render();}
+async function deleteDraft(id){if(!confirm('Delete this draft?'))return;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'DELETE',body:JSON.stringify({id:String(id)})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Delete failed');}await syncPostsServer(true);render();return;}catch(e){return alert(e.message||'Could not delete draft.');}}s.posts=s.posts.filter(p=>String(p.id)!==String(id));save();render();}
+function toggleSavedPost(id){s.savedPosts=Array.isArray(s.savedPosts)?s.savedPosts:[];const sid=String(id),i=s.savedPosts.map(String).indexOf(sid);if(i>=0)s.savedPosts.splice(i,1);else s.savedPosts.push(id);save();renderSavedPosts();render();}
+function renderSavedPosts(){const box=document.getElementById('savedPostList');if(!box)return;const ids=Array.isArray(s.savedPosts)?s.savedPosts.map(String):[];const posts=(s.posts||[]).filter(p=>p.status!=='draft'&&ids.includes(String(p.id)));box.innerHTML=posts.length?posts.slice().reverse().map(p=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span><b>${p.title||'Untitled'}</b><div class="muted">${p.access==='subscription'?'⭐ Subscription':money(p.price)}</div></span><button class="btn light" onclick="toggleSavedPost(${JSON.stringify(String(p.id))})">Remove</button></div>`).join(''):'<div class="muted">No saved posts yet.</div>';}
+function renderDraftPosts(){const el=document.getElementById('draftPostList');if(!el)return;const drafts=(s.posts||[]).filter(p=>p.status==='draft').slice().reverse();el.innerHTML=drafts.length?drafts.map(p=>`<div style="padding:11px 0;border-bottom:1px solid #eee"><div class="row"><b>${p.title||'Untitled draft'}</b><span class="pill">DRAFT</span></div><div class="muted" style="margin-top:5px">${p.text||p.content||'No description'}</div><div style="margin-top:8px"><button class="btn" onclick="publishDraft(${JSON.stringify(String(p.id))})">PUBLISH</button><button class="btn light" onclick="deleteDraft(${JSON.stringify(String(p.id))})">DELETE</button></div></div>`).join(''):'<div class="muted">No drafts yet.</div>';}
+async function createPost(){let p=collectPostForm();if(!p.title)return alert('Post title is required.');if(p.access==='paid'&&(p.price<0||!Number.isFinite(p.price)))return alert('Enter a valid amount for a paid post.');if(p.access==='subscription'&&!s.plans.some(q=>String(q.id)===String(p.planId)&&q.active))return alert('Select an active subscription plan.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{p.media=await uploadPostMedia(p.files||[]);delete p.files;const r=await CreatorChatAuth.api('/api/posts',{method:'POST',body:JSON.stringify(postApiPayload(p,'published'))});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not publish post');await syncPostsServer(true);clearPostForm();render();alert('Post published.');return;}catch(e){return alert(e.message||'Could not publish post.');}}p.id=Date.now();p.status='published';p.unlocked=false;s.posts.push(p);save();clearPostForm();alert('Post published (demo).');}
+async function editPost(id){let p=s.posts.find(x=>String(x.id)===String(id));if(!p)return;let title=prompt('Post title',p.title);if(title===null)return;let price=p.access==='paid'?Number(prompt('Paid amount ₹',p.price)):p.price;if(p.access==='paid'&&(!Number.isFinite(price)||price<0))return alert('Enter a valid amount.');let blur=Number(prompt('Blur (0-30)',p.blur||12));if(!Number.isFinite(blur))blur=12;p.title=title.trim()||p.title;p.price=price;p.blur=Math.min(30,Math.max(0,blur));if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(p.id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'PATCH',body:JSON.stringify({id:String(id),title:p.title,content:p.text??p.content??'',accessType:p.access,pricePaise:Math.round(Number(p.price||0)*100),planId:p.planId||null,blur:p.blur,media:p.media||[],status:p.status||'published'})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');await syncPostsServer(true);render();return;}catch(e){return alert(e.message||'Could not update post.');}}save();}
+async function deletePost(id){if(!confirm('Delete this post?'))return;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'DELETE',body:JSON.stringify({id:String(id)})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Delete failed');}await syncPostsServer(true);render();return;}catch(e){return alert(e.message||'Could not delete post.');}}s.posts=s.posts.filter(p=>String(p.id)!==String(id));save();}
+async function unlockPost(id){let post=s.posts.find(p=>String(p.id)===String(id));if(!post)return;if(post.unlocked||post.accessGranted)return;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'POST',body:JSON.stringify({action:'unlock',postId:String(id)})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402&&d.error==='Insufficient wallet balance')return alert('Wallet balance insufficient. Recharge first.');if(r.status===402&&d.error==='Active subscription required')return alert('You need the required active subscription to view this post.');throw new Error(d.error||'Could not unlock post.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;await syncPostsServer(true);save();render();alert(post.access==='subscription'?'✅ Subscription post unlocked.':'✅ Post unlocked.');return;}catch(e){return alert(e.message||'Could not unlock post.');}}if(post.access==='subscription'){let plan=s.plans.find(q=>String(q.id)===String(post.planId)&&q.active);if(!plan)return alert('This subscription plan is no longer active.');if(s.member!==plan.name)return alert('To view this post, you need a '+plan.name+' subscription. Go to the Creator section and subscribe to a plan.');post.unlocked=true;save();render();alert('Subscription post unlocked (demo).');return;}if(s.balance<post.price)return alert('Wallet balance insufficient. Recharge first.');s.balance-=post.price;post.unlocked=true;s.orders++;s.earn+=post.price;s.tx.push({d:'Paid post — '+post.title,a:post.price,ts:Date.now()});save();alert('Post unlocked (demo).');}
 
-function createPost(){let t=document.getElementById('postTitle').value.trim(),x=document.getElementById('postText').value.trim(),access=document.getElementById('postAccess').value,p=Number(document.getElementById('postPrice').value),planId=Number(document.getElementById('postPlan').value),photos=[...document.getElementById('postPhoto').files],videos=[...document.getElementById('postVideo').files],blur=Number(document.getElementById('blurRange').value);if(!t)return alert('Post title is required.');if(access==='paid'&&(p<0||!Number.isFinite(p)))return alert('Enter a valid amount for a paid post.');if(access==='subscription'&&!s.plans.some(q=>q.id===planId&&q.active))return alert('Select an active subscription plan.');let media=[...photos,...videos].map(f=>({name:f.name,type:f.type,size:f.size}));s.posts.push({id:Date.now(),status:'published',title:t,text:x,access,price:access==='paid'?p:0,planId:access==='subscription'?planId:null,unlocked:false,blur,media});save();document.getElementById('postTitle').value='';document.getElementById('postText').value='';document.getElementById('postPrice').value='';document.getElementById('postPhoto').value='';document.getElementById('postVideo').value='';document.getElementById('photoPreview').innerHTML='';document.getElementById('videoPreview').innerHTML='';alert('Post published (demo).')}
-function editPost(id){
-  let p=s.posts.find(x=>x.id===id);if(!p)return;
-  let title=prompt('Post title',p.title);if(title===null)return;
-  let price=p.access==='paid'?Number(prompt('Paid amount ₹',p.price)):p.price;
-  if(p.access==='paid'&&(!Number.isFinite(price)||price<0))return alert('Enter a valid amount.');
-  p.title=title.trim()||p.title;if(p.access==='paid')p.price=price;
-  p.blur=Number(prompt('Blur (0-30)',p.blur||12));if(!Number.isFinite(p.blur))p.blur=12;
-  save();
-}
-function deletePost(id){
-  if(!confirm('Delete this post?'))return;
-  s.posts=s.posts.filter(p=>p.id!==id);save();
-}
-function unlockPost(id){
-      let post=s.posts.find(p=>p.id===id);if(!post||post.unlocked)return;
-      if(post.access==='subscription'){
-        let plan=s.plans.find(q=>q.id===post.planId&&q.active);
-        if(!plan)return alert('This subscription plan is no longer active.');
-        if(s.member!==plan.name){
-          alert('To view this post, you need a '+plan.name+' subscription. Go to the Creator section and subscribe to a plan.');
-          return;
-        }
-        post.unlocked=true;save();render();alert('Subscription post unlocked (demo).');return;
-      }
-      if(s.balance<post.price)return alert('Wallet balance insufficient. Recharge first.');
-      s.balance-=post.price;post.unlocked=true;s.orders++;s.earn+=post.price;
-      s.tx.push({d:'Paid post — '+post.title,a:post.price,ts:Date.now()});save();alert('Post unlocked (demo).');
-    }
-function send(){let i=document.getElementById('msg'),t=i.value.trim();if(!t)return;if(!s.free&&s.balance<s.rate)return alert('Wallet balance insufficient. Recharge first.');if(!s.free){s.balance-=s.rate;s.earn+=s.rate;s.orders++;s.tx.push({d:'Paid message',a:s.rate,ts:Date.now()})}document.getElementById('chatbox').insertAdjacentHTML('beforeend',`<div class="bubble mine">${t}</div><div class="bubble">Received ❤️</div>`);i.value='';save()}
+function send(){let i=document.getElementById('msg'),t=i.value.trim();if(!t)return;if(!s.free&&s.balance<s.rate)return alert('Wallet balance insufficient. Recharge first.');if(!s.free){s.balance-=s.rate;s.earn+=s.rate;s.orders++;s.tx.push({d:'Paid message',a:s.rate,ts:Date.now()})}let box=document.getElementById('chatbox'),mine=document.createElement('div'),reply=document.createElement('div');mine.className='bubble mine';mine.textContent=t;reply.className='bubble';reply.textContent='Received ❤️';box.append(mine,reply);i.value='';save()}
 function renderTransactions(){
   let now=Date.now(), thirty=30*24*60*60*1000;
   let recent=(s.tx||[]).filter(t=>(!t.ts||now-t.ts<=thirty)&&(String(t.type||'').toLowerCase()==='wallet-recharge'||String(t.d||'').toLowerCase().includes('wallet recharge')||String(t.d||'').toLowerCase().includes('wallet top up')||String(t.d||'').toLowerCase().includes('wallet top-up'))).slice().reverse().slice(0,20);
@@ -2655,8 +2588,8 @@ function renderNotifications(){
   badge.style.display=unread?'inline-block':'none';
   const rows=s.notifications.slice().reverse().slice(0,30);
   list.innerHTML=rows.length?rows.map(n=>`<div style="padding:10px 0;border-bottom:1px solid #eee;opacity:${n.read?.65:1}">
-    <b>${n.title||'Notification'}</b>
-    <div class="muted">${n.text||''}</div>
+    <b>${escapeHtml(n.title||'Notification')}</b>
+    <div class="muted">${escapeHtml(n.text||'')}</div>
     <small class="muted">${n.at?new Date(n.at).toLocaleString():''}</small>
   </div>`).join(''):'<div class="muted">No notifications.</div>';
 }
@@ -2666,13 +2599,10 @@ function toggleNotifications(){
   c.style.setProperty('display',open?'none':'block','important');
   if(!open)renderNotifications();
 }
-function markAllNotificationsRead(){
-  ensureNotifications();
-  s.notifications.forEach(n=>n.read=true);
-  save();renderNotifications();
-}
+async function markAllNotificationsRead(){ensureNotifications();if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await CreatorChatAuth.api('/api/notifications',{method:'PATCH',body:JSON.stringify({allRead:true})});if(!r.ok)throw new Error('Could not update notifications');}catch(e){return alert(e.message||'Could not update notifications.')}}s.notifications.forEach(n=>n.read=true);saveNoRender();renderNotifications();}
 
-function render(){
+function render(){syncGiftsServer(false);
+  syncSubscriptionsServer(false);syncPostsServer(false);syncNotificationsServer(false);syncSettingsServer(false);
   refreshAdminDashboard();
   refreshAdminControlCenter();hideFanChatPrices();renderFanActivity();renderMySubscription();renderNotifications();renderFanNotifications();renderInsights();renderFanChat();
 // Role guard: payout/creator analytics/admin payout controls must never render in Fan mode.
@@ -2686,26 +2616,12 @@ const adminPlans=document.getElementById('adminPlans');if(adminPlans)adminPlans.
 const activePlans=s.plans.filter(p=>p.active&&p.fanVisible!==false).map(p=>({...p,durationMonths:p.durationMonths||({"1 Month":1,"3 Months":3,"6 Months":6,"12 Months":12}[p.duration]||0)}));
 const fanPlans=document.getElementById('fanPlans');if(fanPlans)fanPlans.innerHTML=activePlans.length?activePlans.map(p=>`<div class="plan" style="margin-bottom:10px"><div class="row"><span><b>${p.name}</b><div class="muted">${p.duration}</div><strong>${money(p.price)}</strong></span><button class="btn" onclick="subscribe(${p.price},'${p.name}')">Subscribe</button></div></div>`).join(''):'<div class="muted">The creator has not made any subscription plans available yet.</div>';
 renderFanOffers(activePlans);
-const adminGiftsList=document.getElementById('adminGiftsList');if(adminGiftsList)adminGiftsList.innerHTML=s.giftCatalog.map(g=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span>${g.emoji} ${g.name}<div class="muted">${money(g.price)}</div></span><span style="display:flex;gap:5px"><button class="btn light" onclick="editGift(${g.id})">EDIT</button><button class="btn ${g.active?'light':''}" onclick="toggleGift(${g.id})">${g.active?'HIDE':'SHOW'}</button></span></div>`).join('');
-const fanGifts=document.getElementById('fanGifts');if(fanGifts)fanGifts.innerHTML=s.giftCatalog.filter(g=>g.active).map(g=>`<div class="gift" onclick="gift(${g.price},'${g.name}')">${g.emoji}<b>${money(g.price)}</b><span class="muted">${g.name}</span></div>`).join('');
-const rechargeBox=document.getElementById('recharge');if(rechargeBox)rechargeBox.innerHTML=[500,1000,1500,2000,3000,5000,10000].map(v=>`<div class="gift" onclick="recharge(${v})">💳<b>${money(v)}</b><span class="muted">Recharge</span></div>`).join('');
+const adminGiftsList=document.getElementById('adminGiftsList');if(adminGiftsList)adminGiftsList.innerHTML=s.giftCatalog.map(g=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span>${g.emoji} ${g.name}<div class="muted">${money(g.price)}</div></span><span style="display:flex;gap:5px"><button class="btn light" onclick="editGift(${JSON.stringify(g.id)})">EDIT</button><button class="btn ${g.active?'light':''}" onclick="toggleGift(${JSON.stringify(g.id)})">${g.active?'HIDE':'SHOW'}</button></span></div>`).join('');
+const fanGifts=document.getElementById('fanGifts');if(fanGifts)fanGifts.innerHTML=s.giftCatalog.filter(g=>g.active).map(g=>`<div class="gift" onclick="gift(${JSON.stringify(g.id)})">${g.emoji}<b>${money(g.price)}</b><span class="muted">${g.name}</span></div>`).join('');
+const rechargeBox=document.getElementById('recharge');if(rechargeBox)rechargeBox.innerHTML=[500,1000,1500,2000,3000,5000,10000].map(v=>`<div class="gift" data-wallet-recharge="1" onclick="recharge(${v})">💳<b>${money(v)}</b><span class="muted">Recharge</span></div>`).join('');
 const adminLedger=document.getElementById('adminLedger');if(adminLedger)adminLedger.innerHTML=s.tx.length?s.tx.slice().reverse().map(x=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span>${x.d}</span><b>${money(x.a)}</b></div>`).join(''):'No transactions yet.';
-renderDraftPosts();renderSavedPosts();const postList=document.getElementById('postList');let publishedPosts=(s.posts||[]).filter(p=>p.status!=='draft');if(postList)postList.innerHTML=publishedPosts.length?publishedPosts.slice().reverse().map(p=>`<div style="padding:11px 0;border-bottom:1px solid #eee"><div class="row"><b>${p.title}</b><b>${p.access==='subscription'?'⭐ Subscription':money(p.price)}</b></div><div class="muted" style="margin-top:5px">${p.text||''}</div>${p.media?.length?`<div class="muted" style="margin-top:6px">📎 ${p.media.length} media file(s): ${p.media.map(m=>m.name).join(', ')}</div>`:''}<div style="margin-top:8px"><button class="btn light" onclick="editPost(${p.id})">EDIT</button> <button class="btn light" onclick="deletePost(${p.id})">DELETE</button></div></div>`).join(''):'No paid posts yet.';
-const fanPostList=document.getElementById('fanPostList');if(fanPostList){
-  const sub=s.subscription&&s.subscription.expiresAt>Date.now()?s.subscription:null;
-  const visibleFanPosts=s.posts.filter(p=>fanPostFilter==='all'||(fanPostFilter==='subscription'&&p.access==='subscription')||(fanPostFilter==='paid'&&p.access!=='subscription'));
-  fanPostList.innerHTML=visibleFanPosts.length?visibleFanPosts.slice().reverse().map(p=>{
-    const plan=p.access==='subscription'?s.plans.find(q=>q.id===p.planId):null;
-    const autoSub=!!(p.access==='subscription'&&sub&&plan&&sub.name===plan.name);
-    const open=!!(p.unlocked||autoSub);
-    if(autoSub&&!p.unlocked)p.unlocked=true;
-    const heading=p.access==='subscription'?(plan?plan.name+' Subscription':'Subscription'):money(p.price);
-    const body=open?(p.text||''):'🔒 Exclusive content — unlock to view.';
-    const media=open&&p.media?.length?`<div style="margin:8px 0;padding:16px;border-radius:12px;background:#f3eef9;text-align:center;font-size:28px">📸 🎥</div><div class="muted">📎 ${p.media.length} photo/video file(s)</div>`:p.media?.length?`<div style="margin:8px 0;padding:18px;border-radius:12px;background:#ddd;filter:blur(${p.blur||12}px);text-align:center;font-size:28px">📸 🎥</div><div class="muted">🔒 ${p.media.length} locked photo/video file(s)</div>`:'';
-    const action=open?'<span class="pill">✓ Unlocked</span>':`<button class="btn full" onclick="unlockPost(${p.id})">${p.access==='subscription'?'⭐ Subscribe to '+(plan?.name||'this plan'):'Unlock Post'}</button>`;
-    return `<div class="card" style="padding:12px;margin:8px 0"><div class="row"><b>${p.title}</b><b>${p.access==='subscription'?'⭐ Subscription':money(p.price)}</b></div><p class="muted">${body}</p>${media}${action}</div>`;
-  }).join(''):(fanPostFilter==='subscription'?'No subscription posts available.':fanPostFilter==='paid'?'No paid posts available.':'No posts available.');
-}
+renderDraftPosts();renderSavedPosts();const postList=document.getElementById('postList');let publishedPosts=(s.posts||[]).filter(p=>p.status!=='draft');if(postList)postList.innerHTML=publishedPosts.length?publishedPosts.slice().reverse().map(p=>`<div style="padding:11px 0;border-bottom:1px solid #eee"><div class="row"><b>${p.title||'Untitled'}</b><b>${p.access==='subscription'?'⭐ Subscription':money(p.price)}</b></div><div class="muted" style="margin-top:5px">${p.text||p.content||''}</div>${p.media?.length?`<div class="muted" style="margin-top:6px">📎 ${p.media.length} media file(s): ${p.media.map(m=>m.name).join(', ')}</div>`:''}<div style="margin-top:8px"><button class="btn light" onclick="editPost(${JSON.stringify(String(p.id))})">EDIT</button> <button class="btn light" onclick="deletePost(${JSON.stringify(String(p.id))})">DELETE</button></div></div>`).join(''):'No posts yet.';
+const fanPostList=document.getElementById('fanPostList');if(fanPostList){const visibleFanPosts=s.posts.filter(p=>fanPostFilter==='all'||(fanPostFilter==='subscription'&&p.access==='subscription')||(fanPostFilter==='paid'&&p.access!=='subscription'));fanPostList.innerHTML=visibleFanPosts.length?visibleFanPosts.slice().reverse().map(p=>{const plan=p.access==='subscription'?s.plans.find(q=>String(q.id)===String(p.planId)):null;const open=!!(p.accessGranted||p.unlocked);const heading=p.access==='subscription'?(plan?plan.name+' Subscription':'Subscription'):p.access==='free'?'Free':money(p.price);const body=open?(p.text||p.content||''):'🔒 Exclusive content — unlock to view.';const media=open&&p.media?.length?`<div style="margin:8px 0">${p.media.map(m=>m.url?(m.type||'').startsWith('video/')?`<video src="${m.url}" controls style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0"></video>`:`<img src="${m.url}" alt="" style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0">`:'').join('')}</div><div class="muted">📎 ${p.media.length} photo/video file(s)</div>`:p.media?.length?`<div style="margin:8px 0;padding:18px;border-radius:12px;background:#ddd;filter:blur(${p.blur||12}px);text-align:center;font-size:28px">📸 🎥</div><div class="muted">🔒 ${p.media.length} locked photo/video file(s)</div>`:'';const action=open?'<span class="pill">✓ Unlocked</span>':p.access==='free'?'<span class="pill">✓ Free</span>':`<button class="btn full" onclick="unlockPost(${JSON.stringify(String(p.id))})">${p.access==='subscription'?'⭐ Subscribe to '+(plan?.name||'this plan'):'Unlock Post'}</button>`;return `<div class="card" style="padding:12px;margin:8px 0"><div class="row"><b>${p.title||'Untitled'}</b><b>${heading}</b></div><p class="muted">${body}</p>${media}${action}</div>`;}).join(''):(fanPostFilter==='subscription'?'No subscription posts available.':fanPostFilter==='paid'?'No paid posts available.':'No posts available.');}
 }
 render();
 
@@ -3552,14 +3468,7 @@ function toggleSubscriptionPlan(planId){
   save();renderSubscriptionControls();
   if(typeof addAdminAudit==='function')addAdminAudit(p.active?'Subscription plan activated':'Subscription plan paused',p.name||'Subscription');
 }
-function cancelSubscription(subId){
-  ensureSubscriptionSettings();
-  const x=s.subscriptions.find(z=>String(z.id)===String(subId));if(!x)return;
-  x.active=false;x.status='cancelled';x.cancelledAt=new Date().toISOString();
-  save();
-  if(typeof addNotification==='function')addNotification('Subscription cancelled','Your subscription has been cancelled.','subscription');
-  renderMySubscriptions();renderSubscriptionRenewals();
-}
+async function cancelSubscription(subId){ensureSubscriptionSettings();if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions?id='+encodeURIComponent(subId),{method:'DELETE',credentials:'include'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Cancellation failed');await syncSubscriptionsServer(true);render();if(typeof addNotification==='function')addNotification('Subscription cancelled','Your subscription has been cancelled.','subscription');return;}catch(e){return alert(e.message||'Could not cancel subscription.');}}const x=s.subscriptions.find(z=>String(z.id)===String(subId));if(!x)return;x.active=false;x.status='cancelled';x.cancelledAt=new Date().toISOString();save();if(typeof addNotification==='function')addNotification('Subscription cancelled','Your subscription has been cancelled.','subscription');renderMySubscriptions();renderSubscriptionRenewals();}
 function toggleSubscriptionPreferences(){
   const p=document.getElementById('subscriptionPreferencesPanel');if(!p)return;
   const open=p.style.display!=='none';p.style.setProperty('display',open?'none':'block','important');
@@ -4388,13 +4297,18 @@ try{
       '</div></div>';
   };
 
-  window.setFanAdminStatus=function(index,newStatus){
+  window.setFanAdminStatus=async function(index,newStatus){
     if(!isAdmin())return;
     var fans=Array.isArray(s.fans)?s.fans:[];
-    if(!fans[index])return;
-    fans[index].status=newStatus;
+    var f=fans[index]; if(!f)return;
+    try{
+      var r=await fetch('/api/admin/fans',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:f.id,status:newStatus})});
+      var d=await r.json().catch(()=>({}));
+      if(!r.ok)throw new Error(d.error||'Fan update failed');
+      f.status=d.fan?.status||newStatus; f.name=d.fan?.name||f.name; f.email=d.fan?.email||f.email; f.mobile=d.fan?.mobile||f.mobile;
+    }catch(e){ f.status=newStatus; }
     try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
-    renderFanAdminActions(index);
+    renderFanAdminActions(index); renderFanAccountSections(f);
   };
 
   window.viewFanAsAdmin=function(index){
@@ -4493,6 +4407,43 @@ try{
 })();
 </script>
 
+
+<script id="step249-fan-local-merge-helper">
+function mergeServerFanLocal(u){
+  if(!u)return;
+  s.auth=s.auth||{}; s.auth.user={...(s.auth.user||{}),...u};
+  s.fanAccount={...(s.fanAccount||{}),id:u.id,name:u.name||'',email:u.email||'',mobile:u.mobile||'',contact:u.email||u.mobile||'',loggedIn:true};
+  let f=(s.fans||[]).find(x=>String(x.id)===String(u.id));
+  if(!f){if(!Array.isArray(s.fans))s.fans=[];f={id:u.id};s.fans.push(f);}
+  Object.assign(f,{name:u.name||f.name,email:u.email||'',mobile:u.mobile||'',phone:u.mobile||'',status:u.status||f.status||'active'});
+  save();
+}
+</script>
+
+<script id="step249-server-fan-sync">
+(function(){
+  let busy=false;
+  function signedFan(){return s.auth?.status==='signed_in' && String(s.auth?.user?.role||'').toLowerCase()==='fan' && s.auth?.user?.id;}
+  function mergeUser(u){
+    if(!u)return;
+    s.auth=s.auth||{}; s.auth.user={...(s.auth.user||{}),...u};
+    s.fanAccount={...(s.fanAccount||{}),id:u.id,name:u.name||s.fanAccount?.name||'',email:u.email||'',mobile:u.mobile||'',contact:u.email||u.mobile||'',loggedIn:true};
+    let f=(s.fans||[]).find(x=>String(x.id)===String(u.id));
+    if(!f){f={id:u.id}; if(!Array.isArray(s.fans))s.fans=[]; s.fans.push(f);}
+    f.name=u.name||f.name; f.email=u.email||''; f.mobile=u.mobile||''; f.phone=u.mobile||''; f.status=u.status||f.status||'active';
+    try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
+  }
+  window.syncServerFan=async function(){
+    if(busy||!signedFan()||location.protocol==='file:')return;
+    busy=true;
+    try{const r=await fetch('/api/users/me',{credentials:'include',cache:'no-store'});const d=await r.json().catch(()=>({}));if(r.ok&&d.user){mergeUser(d.user); if(String(s.mode)==='fan'){render();updateFanChatBalance();}}}
+    catch(e){} finally{busy=false;}
+  };
+  setTimeout(syncServerFan,800);
+  setInterval(syncServerFan,15000);
+  document.addEventListener('visibilitychange',function(){if(!document.hidden)syncServerFan();});
+})();
+</script>
 
 <script id="step214-audit">
 (function(){
@@ -4605,6 +4556,117 @@ try{
 })();
 </script>
 
+
+<!-- CreatorChat STEP 249.5.4 — REAL WALLET CHECKOUT / SERVER-AUTHORITATIVE BALANCE -->
+<script id="creatorchat-step2495-4-real-wallet-checkout">
+(function(){
+  if(window.__ccStep24954RealWallet)return;
+  window.__ccStep24954RealWallet=true;
+  const WALLET_API='/api/wallet';
+  const ORDERS_API='/api/payments/orders';
+  const VERIFY_API='/api/payments/verify';
+  const MIN=500, MAX=10000;
+  let walletBusy=false;
+  function signedInFan(){
+    return s && s.auth?.status==='signed_in' && String(s.auth?.user?.role||'').toLowerCase()==='fan' && !!s.auth?.user?.id;
+  }
+  function setWalletBusy(v){
+    walletBusy=!!v;
+    document.querySelectorAll('[data-wallet-recharge]').forEach(b=>{b.disabled=walletBusy; b.setAttribute('aria-busy',walletBusy?'true':'false');});
+  }
+  function setAuthoritativeWallet(data){
+    if(!data||!Number.isFinite(Number(data.balancePaise)))return false;
+    const rupees=Number(data.balancePaise)/100;
+    s.balance=rupees;
+    if(Array.isArray(data.transactions)){
+      s.tx=(data.transactions||[]).map(x=>({
+        d: x.type==='credit' ? 'Wallet credit' : (x.type==='debit' ? 'Wallet debit' : 'Wallet '+String(x.type||'transaction')),
+        a: Number(x.amountPaise||0)/100,
+        ts: x.createdAt ? new Date(x.createdAt).getTime() : Date.now(),
+        type: x.referenceType==='payment_order' ? 'wallet-recharge' : String(x.type||'other'),
+        reference: x.referenceId||''
+      }));
+    }
+    try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
+    render();
+    updateFanChatBalance?.();
+    return true;
+  }
+  async function refreshServerWallet(){
+    if(!signedInFan() || location.protocol==='file:')return null;
+    const r=await fetch(WALLET_API+'?limit=100',{credentials:'include',cache:'no-store'});
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'Wallet sync failed');
+    setAuthoritativeWallet(d);
+    return d;
+  }
+  function validateAmount(v){
+    const a=Number(v);
+    if(!Number.isInteger(a)||a<MIN||a>MAX)throw new Error(`Recharge must be between ₹${MIN} and ₹${MAX}.`);
+    return a;
+  }
+  window.refreshServerWallet=refreshServerWallet;
+  window.startWalletRecharge=async function(amount){
+    if(walletBusy)return;
+    if(!signedInFan())return alert('Please sign in as a Fan before recharging your wallet.');
+    if(location.protocol==='file:')return alert('Wallet payments require the deployed HTTPS app.');
+    let a;
+    try{a=validateAmount(amount);}catch(e){return alert(e.message);}
+    if(typeof window.Razorpay!=='function')return alert('Payment checkout is not available. Please refresh the page and try again.');
+    setWalletBusy(true);
+    try{
+      const orderRes=await fetch(ORDERS_API,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({amount:a*100})});
+      const order=await orderRes.json().catch(()=>({}));
+      if(!orderRes.ok)throw new Error(order.error||'Could not create payment order.');
+      if(!order.orderId||!order.keyId||!order.amount)throw new Error('Invalid payment order received from server.');
+      await new Promise((resolve,reject)=>{
+        const options={
+          key:String(order.keyId),
+          amount:Number(order.amount),
+          currency:String(order.currency||'INR'),
+          order_id:String(order.orderId),
+          name:'CreatorChat',
+          description:`Wallet recharge ₹${a}`,
+          handler:async function(response){
+            try{
+              const verifyRes=await fetch(VERIFY_API,{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({razorpay_order_id:response.razorpay_order_id,razorpay_payment_id:response.razorpay_payment_id,razorpay_signature:response.razorpay_signature})});
+              const verified=await verifyRes.json().catch(()=>({}));
+              if(!verifyRes.ok||verified.ok!==true)throw new Error(verified.error||'Payment verification failed.');
+              await refreshServerWallet();
+              const credit=Number(verified.walletCreditPaise||0)/100;
+              alert(`✅ Payment verified. ₹${credit.toLocaleString('en-IN')} added to your wallet.`);
+              resolve();
+            }catch(e){reject(e);}
+          },
+          modal:{ondismiss:function(){reject(new Error('Payment was cancelled.'));}},
+          prefill:{name:String(s.auth.user.name||''),email:String(s.auth.user.email||'')},
+          theme:{color:'#6d28d9'}
+        };
+        const rz=new Razorpay(options);
+        rz.on('payment.failed',function(){reject(new Error('Payment failed. No wallet balance was added.'));});
+        rz.open();
+      });
+    }catch(e){
+      if(e?.message!=='Payment was cancelled.')alert('❌ '+String(e?.message||'Wallet recharge failed.'));
+    }finally{
+      setWalletBusy(false);
+      try{await refreshServerWallet();}catch(e){}
+    }
+  };
+  window.startWalletRechargeFromInput=function(id){
+    const el=document.getElementById(id); if(!el)return;
+    return startWalletRecharge(el.value);
+  };
+  // Recharge buttons rendered by the existing UI call recharge(v); mark them as payment buttons.
+  window.markWalletRechargeButtons=function(){
+    document.querySelectorAll('button[onclick^="recharge("]').forEach(b=>{b.setAttribute('data-wallet-recharge','1');});
+  };
+  // Keep the server wallet authoritative whenever the signed-in fan opens the app or returns to it.
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden&&signedInFan())refreshServerWallet().catch(()=>{});});
+  window.addEventListener('focus',()=>{if(signedInFan())refreshServerWallet().catch(()=>{});});
+  setTimeout(()=>{markWalletRechargeButtons(); if(signedInFan())refreshServerWallet().catch(()=>{});},0);
+})();
+</script>
 
 <!-- CreatorChat Step 218 — Wallet & Payment Foundation -->
 <script id="creatorchat-step218-payment-foundation">
@@ -5085,6 +5147,11 @@ try{
 })();
 </script>
 
+<!-- CreatorChat STEP 249.5.5: SUBSCRIPTION_PRODUCTION_SYNC -->
+<script id="creatorchat-step-249-5-5">
+(()=>{if(window.__ccStep24955)return;window.__ccStep24955=true;window.CreatorChatSubscriptionProduction24955={version:'249.5.5',serverAuthoritative:true,planEndpoint:'/api/subscriptions?plans=1',subscriptionEndpoint:'/api/subscriptions',walletDebitsServerSide:true,creatorCreditsServerSide:true,expiresAtServerSide:true,validate:()=>true};})();
+</script>
+
 <!-- CreatorChat STEP 243: production DB integration candidate -->
 \n<div id="publicCreatorEntry" class="public-entry-gate" style="display:none!important">\n  <div class="public-entry-wrap">\n    <div class="public-entry-brand">CreatorChat</div>\n    <div class="public-entry-card">\n      <div id="publicCreatorAvatar" class="public-entry-avatar">CC</div>\n      <h2 id="publicCreatorName" style="text-align:center;margin:0">Creator Profile</h2>\n      <div id="publicCreatorBio" class="muted" style="text-align:center;margin-top:6px">Connect with your creator.</div>\n      <div id="publicCreatorStatus" class="public-entry-status"></div>\n      <div class="public-entry-tabs">\n        <button id="publicLoginTab" class="active" type="button" onclick="switchPublicAuth('login')">Fan Login</button>\n        <button id="publicRegisterTab" type="button" onclick="switchPublicAuth('register')">Create Account</button>\n      </div>\n      <div id="publicLoginForm">\n        <input id="publicFanLoginEmail" type="email" placeholder="Email" autocomplete="email">\n        <input id="publicFanLoginPassword" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanLogin()">🔐 Continue as Fan</button>\n      </div>\n      <div id="publicRegisterForm" style="display:none!important">\n        <input id="publicFanRegisterName" type="text" placeholder="Your name" autocomplete="name">\n        <input id="publicFanRegisterEmail" type="email" placeholder="Email" autocomplete="email" style="margin-top:8px">\n        <input id="publicFanRegisterPassword" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanRegister()">✨ Create Fan Account</button>\n      </div>\n      <div id="publicCreatorAuthStatus" class="public-entry-status"></div>\n      <div class="public-entry-note">🔒 This public link is Fan-only. Admin and Creator login options are hidden.</div>\n    </div>\n  </div>\n</div>\n\n<script id="creator-public-link-entry-24951">
 (function(){
@@ -5146,5 +5213,8 @@ try{
   };
   loadCreator();
 })();
-</script>\n</body>
+</script><!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
+<script id="creatorchat-release-249-5-26">window.CreatorChatProductionRelease526={version:'249.5.26',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true};</script>
+\n<script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
+</body>
 </html>

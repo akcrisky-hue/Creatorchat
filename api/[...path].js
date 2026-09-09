@@ -8,6 +8,7 @@ import chatSync from '../backend/api/chat-sync/index.mjs';
 import chats from '../backend/api/chats/index.mjs';
 import creatorProfile from '../backend/api/creator/profile/index.mjs';
 import earnings from '../backend/api/earnings/index.mjs';
+import gifts from '../backend/api/gifts/index.mjs';
 import exportData from '../backend/api/export/index.mjs';
 import healthApp from '../backend/api/health/app.mjs';
 import healthDb from '../backend/api/health/db.mjs';
@@ -18,6 +19,7 @@ import paymentOrders from '../backend/api/payments/orders.mjs';
 import paymentVerify from '../backend/api/payments/verify.mjs';
 import posts from '../backend/api/posts/index.mjs';
 import settings from '../backend/api/settings/index.mjs';
+import storage from '../backend/api/storage/index.mjs';
 import subscriptions from '../backend/api/subscriptions/index.mjs';
 import upiVerify from '../backend/api/upi/verify.mjs';
 import usersMe from '../backend/api/users/me.mjs';
@@ -34,6 +36,7 @@ const ROUTES = new Map([
   ['/api/chats', chats],
   ['/api/creator/profile', creatorProfile],
   ['/api/earnings', earnings],
+  ['/api/gifts', gifts],
   ['/api/export', exportData],
   ['/api/health/app', healthApp],
   ['/api/health/db', healthDb],
@@ -44,6 +47,7 @@ const ROUTES = new Map([
   ['/api/payments/verify', paymentVerify],
   ['/api/posts', posts],
   ['/api/settings', settings],
+  ['/api/storage', storage],
   ['/api/subscriptions', subscriptions],
   ['/api/upi/verify', upiVerify],
   ['/api/users/me', usersMe],

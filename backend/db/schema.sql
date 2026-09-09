@@ -5,6 +5,8 @@ CREATE TABLE IF NOT EXISTS users (
   name TEXT NOT NULL DEFAULT '',
   email TEXT NOT NULL UNIQUE,
   mobile TEXT NOT NULL DEFAULT '',
+  support_email TEXT NOT NULL DEFAULT '',
+  preferences JSONB NOT NULL DEFAULT '{}'::jsonb,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','blocked','suspended','deleted')),
   password_hash TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
@@ -80,24 +82,68 @@ CREATE TABLE IF NOT EXISTS payment_orders (
 CREATE INDEX IF NOT EXISTS payment_orders_user_idx ON payment_orders(user_id, created_at DESC);
 CREATE UNIQUE INDEX IF NOT EXISTS payment_orders_provider_payment_id_uq ON payment_orders(provider_payment_id) WHERE provider_payment_id IS NOT NULL;
 
+CREATE TABLE IF NOT EXISTS subscription_plans (
+  id TEXT PRIMARY KEY,
+  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  name TEXT NOT NULL,
+  duration_months INTEGER NOT NULL CHECK (duration_months BETWEEN 1 AND 120),
+  price_paise INTEGER NOT NULL CHECK (price_paise >= 0),
+  active BOOLEAN NOT NULL DEFAULT true,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS subscription_plans_creator_idx ON subscription_plans(creator_id,active,updated_at DESC);
+
 CREATE TABLE IF NOT EXISTS subscriptions (
   id TEXT PRIMARY KEY,
   fan_id TEXT NOT NULL REFERENCES users(id),
   creator_id TEXT NOT NULL REFERENCES users(id),
+  plan_id TEXT REFERENCES subscription_plans(id),
+  amount_paise INTEGER NOT NULL DEFAULT 0 CHECK (amount_paise >= 0),
+  expires_at TIMESTAMPTZ,
   status TEXT NOT NULL DEFAULT 'active' CHECK (status IN ('active','paused','cancelled','expired')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   UNIQUE(fan_id,creator_id)
 );
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS plan_id TEXT REFERENCES subscription_plans(id);
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS amount_paise INTEGER NOT NULL DEFAULT 0 CHECK (amount_paise >= 0);
+ALTER TABLE subscriptions ADD COLUMN IF NOT EXISTS expires_at TIMESTAMPTZ;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS support_email TEXT NOT NULL DEFAULT '';
+ALTER TABLE users ADD COLUMN IF NOT EXISTS preferences JSONB NOT NULL DEFAULT '{}'::jsonb;
+CREATE INDEX IF NOT EXISTS subscriptions_fan_status_idx ON subscriptions(fan_id,status,expires_at);
+CREATE INDEX IF NOT EXISTS subscriptions_creator_status_idx ON subscriptions(creator_id,status,expires_at);
 CREATE TABLE IF NOT EXISTS posts (
   id TEXT PRIMARY KEY,
   creator_id TEXT NOT NULL REFERENCES users(id),
+  title TEXT NOT NULL DEFAULT '',
   content TEXT NOT NULL DEFAULT '',
+  access_type TEXT NOT NULL DEFAULT 'paid' CHECK (access_type IN ('free','paid','subscription')),
+  price_paise INTEGER NOT NULL DEFAULT 0 CHECK (price_paise >= 0),
+  plan_id TEXT REFERENCES subscription_plans(id),
+  blur INTEGER NOT NULL DEFAULT 12 CHECK (blur BETWEEN 0 AND 30),
+  media JSONB NOT NULL DEFAULT '[]'::jsonb,
   status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft','published','archived','removed')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS title TEXT NOT NULL DEFAULT '';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS access_type TEXT NOT NULL DEFAULT 'paid';
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS price_paise INTEGER NOT NULL DEFAULT 0 CHECK (price_paise >= 0);
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS plan_id TEXT REFERENCES subscription_plans(id);
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS blur INTEGER NOT NULL DEFAULT 12 CHECK (blur BETWEEN 0 AND 30);
+ALTER TABLE posts ADD COLUMN IF NOT EXISTS media JSONB NOT NULL DEFAULT '[]'::jsonb;
 CREATE INDEX IF NOT EXISTS posts_creator_created_idx ON posts(creator_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS posts_creator_status_idx ON posts(creator_id,status,created_at DESC);
+CREATE TABLE IF NOT EXISTS post_unlocks (
+  id TEXT PRIMARY KEY,
+  post_id TEXT NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  fan_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_paise INTEGER NOT NULL DEFAULT 0 CHECK (amount_paise >= 0),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE(post_id,fan_id)
+);
+CREATE INDEX IF NOT EXISTS post_unlocks_fan_idx ON post_unlocks(fan_id,created_at DESC);
 CREATE TABLE IF NOT EXISTS notifications (
   id TEXT PRIMARY KEY,
   user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
