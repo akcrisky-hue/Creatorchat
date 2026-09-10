@@ -55,19 +55,41 @@ const ROUTES = new Map([
 ]);
 
 function getPath(req) {
-  const headers = req.headers || {};
-  const matched = headers['x-matched-path'] || headers['x-invoke-path'];
-  const raw = String(matched || req.url || '');
-  try {
-    const pathname = new URL(raw, 'http://localhost').pathname.replace(/\/+$/, '') || '/';
-    if (pathname !== '/api/[...path]' && pathname !== '/api/index.mjs') return pathname;
-  } catch {}
-  const p = req.query?.path;
-  if (Array.isArray(p) && p.length) return '/api/' + p.map(String).join('/');
-  if (typeof p === 'string' && p) return p.startsWith('/api/') ? p : '/api/' + p;
+  const q = req && req.query && req.query.path;
+  const fromQuery = Array.isArray(q) && q.length
+    ? q.map(String).join('/')
+    : (typeof q === 'string' && q ? q : '');
+
+  const normalize = (value) => {
+    const raw = String(value || '').trim();
+    if (!raw || raw === '/api/[...path]' || raw === '/api/index.mjs') return '';
+    try {
+      const pathname = new URL(raw, 'http://localhost').pathname;
+      const clean = pathname.replace(/\/+/g, '/').replace(/\/+$/, '') || '/';
+      if (clean === '/api/[...path]' || clean === '/api/index.mjs') return '';
+      return clean;
+    } catch {
+      return '';
+    }
+  };
+
+  // Vercel's catch-all parameter is the authoritative source when present.
+  // Fall back to the request URL/headers for compatibility across runtimes.
+  const pathFromQuery = normalize(fromQuery.startsWith('/api/') ? fromQuery : `/api/${fromQuery}`);
+  if (pathFromQuery) return pathFromQuery;
+
+  const candidates = [
+    req && req.url,
+    req && req.headers && req.headers['x-invoke-path'],
+    req && req.headers && req.headers['x-matched-path'],
+  ];
+  for (const candidate of candidates) {
+    const path = normalize(candidate);
+    if (path) return path;
+  }
+
   return '/api';
 }
-
 function hydrateQuery(req) {
   if (req.query && typeof req.query === 'object' && Object.keys(req.query).length) return;
   try {
