@@ -1,5 +1,5 @@
 {
-  "version": "249.5.27",
+  "version": "249.5.28",
   "status": "pre-deployment-release-candidate",
   "routes": [
     "POST /api/auth/register",

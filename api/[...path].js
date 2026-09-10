@@ -55,14 +55,18 @@ const ROUTES = new Map([
 ]);
 
 function getPath(req) {
-  const q = req && req.query && req.query.path;
-  const fromQuery = Array.isArray(q) && q.length
-    ? q.map(String).join('/')
-    : (typeof q === 'string' && q ? q : '');
-
   const normalize = (value) => {
-    const raw = String(value || '').trim();
+    let raw = String(value || '').trim();
     if (!raw || raw === '/api/[...path]' || raw === '/api/index.mjs') return '';
+
+    // Vercel can expose the catch-all parameter as either:
+    //   health/db, /health/db, /api/health/db, or api/health/db
+    // and some runtimes can provide it as an array of segments.
+    raw = raw.replace(/^https?:\/\/[^/]+/i, '');
+    raw = raw.replace(/^\/?api\//i, '/api/');
+    raw = raw.replace(/^\/?api$/i, '/api');
+    if (!raw.startsWith('/')) raw = `/api/${raw}`;
+
     try {
       const pathname = new URL(raw, 'http://localhost').pathname;
       const clean = pathname.replace(/\/+/g, '/').replace(/\/+$/, '') || '/';
@@ -73,19 +77,27 @@ function getPath(req) {
     }
   };
 
-  // Vercel's catch-all parameter is the authoritative source when present.
-  // Fall back to the request URL/headers for compatibility across runtimes.
-  const pathFromQuery = normalize(fromQuery.startsWith('/api/') ? fromQuery : `/api/${fromQuery}`);
-  if (pathFromQuery) return pathFromQuery;
+  const q = req && req.query && req.query.path;
+  let queryValues = [];
+  if (Array.isArray(q)) {
+    queryValues = [q.map(String).join('/')];
+  } else if (typeof q === 'string' && q) {
+    queryValues = [q];
+  }
+  for (const value of queryValues) {
+    const path = normalize(value);
+    if (path && ROUTES.has(path)) return path;
+  }
 
   const candidates = [
     req && req.url,
+    req && req.originalUrl,
     req && req.headers && req.headers['x-invoke-path'],
     req && req.headers && req.headers['x-matched-path'],
   ];
   for (const candidate of candidates) {
     const path = normalize(candidate);
-    if (path) return path;
+    if (path && ROUTES.has(path)) return path;
   }
 
   return '/api';
