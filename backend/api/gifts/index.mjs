@@ -38,6 +38,7 @@ export default async function handler(req,res){
    const client=await db().connect(); try{await client.query('BEGIN');
     const gr=await client.query("SELECT * FROM creator_gifts WHERE id=$1 AND active=true FOR SHARE",[giftId]); if(!gr.rowCount){await client.query('ROLLBACK');return json(res,404,{error:'Gift not found or unavailable'},rid);} const g=gr.rows[0];
     const fan=await client.query("SELECT id FROM users WHERE id=$1 AND role='fan' AND status='active' FOR UPDATE",[fanId]); if(!fan.rowCount){await client.query('ROLLBACK');return json(res,403,{error:'Fan account is not active'},rid);}
+    await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`,[`wallet:${fanId}`]);
     const bal=await client.query(`SELECT COALESCE(SUM(CASE WHEN type IN ('credit','refund','adjustment') AND status='completed' THEN amount_paise ELSE 0 END),0)-COALESCE(SUM(CASE WHEN type='debit' AND status='completed' THEN amount_paise ELSE 0 END),0) AS balance FROM wallet_transactions WHERE user_id=$1`,[fanId]);
     const balance=Number(bal.rows[0]?.balance||0),price=Number(g.price_paise||0); if(balance<price){await client.query('ROLLBACK');return json(res,402,{error:'Insufficient wallet balance',balancePaise:balance,requiredPaise:price},rid);}
     const txId=id('gift_tx'); await client.query('INSERT INTO gift_transactions(id,gift_id,fan_id,creator_id,amount_paise) VALUES($1,$2,$3,$4,$5)',[txId,g.id,fanId,g.creator_id,price]);

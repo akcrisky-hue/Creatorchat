@@ -1,12 +1,11 @@
-# CreatorChat Step 248
+# CreatorChat Step 249.5.29
 
-Step 248 adds a production wallet ledger read API and makes Razorpay payment verification atomically credit the user's wallet ledger.
+Production hardening release for the CreatorChat web app.
 
-## Added
-- `GET /api/wallet` — authenticated wallet balance and recent ledger transactions.
-- Payment verification now locks the payment order, marks it paid, and inserts the corresponding wallet credit in one database transaction.
-- Repeated verification of an already-paid order is idempotent and does not create another credit.
-- Frontend UI is preserved from Step 247.
+- Keeps one API catch-all: `api/[...path].js`, plus explicit health endpoints for Vercel edge routing.
+- Adds explicit Vercel health routes for `/api/health/app` and `/api/health/db`.
+- Hardens chat sync, wallet charging, post unlock concurrency, session cookie parsing, and admin fan updates.
+- Frontend root and `frontend/index.html` are kept byte-identical.
+- Production services/credentials remain external configuration and are never bundled.
 
-## Validation note
-Static/syntax checks are included in the development workflow. Live PostgreSQL/Razorpay/browser tests require configured production services and credentials.
+Live PostgreSQL, Razorpay, R2, and browser tests require the user's production environment and credentials.

@@ -18,7 +18,7 @@ export async function body(req){
   let raw=''; for await(const chunk of req){raw+=chunk;if(raw.length>65536) throw Object.assign(new Error('Request body too large'),{statusCode:413});}
   if(!raw)return{}; try{return JSON.parse(raw)}catch{throw Object.assign(new Error('Invalid JSON'),{statusCode:400});}
 }
-export function cookie(req,name){const raw=req.headers.cookie||'';const item=raw.split(';').map(x=>x.trim()).find(x=>x.startsWith(name+'='));return item?decodeURIComponent(item.slice(name.length+1)):'';}
+export function cookie(req,name){const raw=req.headers.cookie||'';const item=raw.split(';').map(x=>x.trim()).find(x=>x.startsWith(name+'='));if(!item)return '';try{return decodeURIComponent(item.slice(name.length+1));}catch{return '';}}
 function sign(value){if(!process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is not configured');return crypto.createHmac('sha256',process.env.SESSION_SECRET).update(value).digest('base64url');}
 export function setSession(res,user){if(!process.env.SESSION_SECRET) throw new Error('SESSION_SECRET is not configured');const payload=Buffer.from(JSON.stringify({id:user.id,role:user.role,email:user.email,name:user.name,exp:Date.now()+86400000})).toString('base64url');res.setHeader('Set-Cookie',`${SESSION}=${payload}.${sign(payload)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=86400`);}
 export function clearSession(res){res.setHeader('Set-Cookie',`${SESSION}=; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=0`);}

@@ -22,7 +22,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(2);
 }
 
-const client = new Client({ connectionString: process.env.DATABASE_URL, ssl: process.env.DATABASE_URL.includes('sslmode=require') ? undefined : undefined });
+const client = new Client({ connectionString: process.env.DATABASE_URL });
 try {
   await client.connect();
   const tables = new Set((await client.query(`SELECT tablename FROM pg_tables WHERE schemaname='public'`)).rows.map(r => r.tablename));

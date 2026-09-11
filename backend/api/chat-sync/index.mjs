@@ -31,19 +31,26 @@ export default async function handler(req,res){
       await client.query('BEGIN');
       const saved=[];
       for(const c of changes){
-        const m=c?.message||{}; const operation=String(c?.operation||'upsert'); const id=String(m.id||''); const chatId=String(m.chatId||'');
-        if(!id || !chatId || id.length>160 || chatId.length>160) continue;
-        const chat=await client.query(`SELECT id,fan_id,creator_id,status FROM chats WHERE id=$1 AND (fan_id=$2 OR creator_id=$2) FOR UPDATE`,[chatId,s.id]);
+        const m=c?.message||{}; const operation=String(c?.operation||'upsert'); const messageId=String(m.id||''); const chatId=String(m.chatId||'');
+        if(!messageId || !chatId || messageId.length>160 || chatId.length>160) continue;
+        const chat=await client.query(`SELECT c.id,c.fan_id,c.creator_id,c.status,COALESCE(cp.chat_price_paise,0) AS chat_price_paise FROM chats c LEFT JOIN creator_profiles cp ON cp.user_id=c.creator_id WHERE c.id=$1 AND (c.fan_id=$2 OR c.creator_id=$2) FOR UPDATE`,[chatId,s.id]);
         if(!chat.rowCount || chat.rows[0].status==='blocked') continue;
         const cRow=chat.rows[0];
         if(operation==='delete'){
-          const q=await client.query(`UPDATE messages SET status='deleted',body='' WHERE id=$1 AND chat_id=$2 AND sender_id=$3 RETURNING id`,[id,chatId,s.id]);
-          if(q.rowCount) saved.push(id);
+          const q=await client.query(`UPDATE messages SET status='deleted',body='' WHERE id=$1 AND chat_id=$2 AND sender_id=$3 RETURNING id`,[messageId,chatId,s.id]);
+          saved.push(messageId);
           continue;
         }
         if(String(m.senderId||s.id)!==s.id) continue;
         const text=cleanText(m.body??m.text);
         if(!text) continue;
+        const existing=await client.query(`SELECT id,chat_id AS "chatId",sender_id AS "senderId",body,status,created_at AS "createdAt" FROM messages WHERE id=$1`,[messageId]);
+        if(existing.rowCount){
+          const old=existing.rows[0];
+          if(String(old.chatId)!==chatId||String(old.senderId)!==String(s.id)) continue;
+          saved.push(messageId);
+          continue;
+        }
         const isFan=s.role==='fan' && String(cRow.fan_id)===String(s.id);
         const price=Number(cRow.chat_price_paise||0);
         if(isFan && price>0){
@@ -51,17 +58,18 @@ export default async function handler(req,res){
           const bal=await client.query(`SELECT COALESCE(SUM(CASE WHEN type IN ('credit','refund','adjustment') AND status='completed' THEN amount_paise WHEN type='debit' AND status='completed' THEN -amount_paise ELSE 0 END),0) AS balance FROM wallet_transactions WHERE user_id=$1`,[s.id]);
           const balance=Number(bal.rows[0]?.balance||0);
           if(balance<price) continue;
-          await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'debit',$3,'chat_message',$4,'completed') ON CONFLICT(reference_type,reference_id,type) DO NOTHING`,[id('wtx'),s.id,price,id]);
-          const debit=await client.query(`SELECT 1 FROM wallet_transactions WHERE reference_type='chat_message' AND reference_id=$1 AND type='debit' LIMIT 1`,[id]);
+          await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'debit',$3,'chat_message',$4,'completed') ON CONFLICT(reference_type,reference_id,type) DO NOTHING`,[id('wtx'),s.id,price,messageId]);
+          const debit=await client.query(`SELECT 1 FROM wallet_transactions WHERE reference_type='chat_message' AND reference_id=$1 AND type='debit' LIMIT 1`,[messageId]);
           if(!debit.rowCount) continue;
-          await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'credit',$3,'chat_message',$4,'completed') ON CONFLICT(reference_type,reference_id,type) DO NOTHING`,[id('wtx'),cRow.creator_id,price,id]);
+          await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'credit',$3,'chat_message',$4,'completed') ON CONFLICT(reference_type,reference_id,type) DO NOTHING`,[id('wtx'),cRow.creator_id,price,messageId]);
         }
         const q=await client.query(`INSERT INTO messages(id,chat_id,sender_id,body,status,created_at)
           VALUES($1,$2,$3,$4,'sent',COALESCE($5::timestamptz,now()))
           ON CONFLICT(id) DO UPDATE SET body=EXCLUDED.body,status=CASE WHEN messages.status='deleted' THEN messages.status ELSE EXCLUDED.status END
           WHERE messages.sender_id=$3 AND messages.chat_id=$2
-          RETURNING id,chat_id,sender_id,body,status,created_at`,[id,chatId,s.id,text,m.createdAt||null]);
-        if(q.rowCount) saved.push(id);
+          RETURNING id,chat_id,sender_id,body,status,created_at`,[messageId,chatId,s.id,text,m.createdAt||null]);
+        if(q.rowCount) saved.push(messageId);
+        if(q.rowCount) await client.query('UPDATE chats SET updated_at=now() WHERE id=$1',[chatId]);
       }
       let where=`c.id IN (SELECT DISTINCT chat_id FROM messages WHERE chat_id IS NOT NULL) AND (c.fan_id=$1 OR c.creator_id=$1)`;
       const params=[s.id];

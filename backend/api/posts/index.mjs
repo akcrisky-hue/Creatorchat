@@ -45,7 +45,7 @@ export default async function handler(req,res){
    const client=await db().connect();
    try{
     await client.query('BEGIN');
-    const pr=await client.query(`SELECT id,creator_id,title,content,access_type,price_paise,plan_id,blur,media,status,created_at,updated_at FROM posts WHERE id=$1 AND status='published' FOR SHARE`,[postId]);
+    const pr=await client.query(`SELECT id,creator_id,title,content,access_type,price_paise,plan_id,blur,media,status,created_at,updated_at FROM posts WHERE id=$1 AND status='published' FOR UPDATE`,[postId]);
     if(!pr.rowCount){await client.query('ROLLBACK');return json(res,404,{error:'Post not found'},rid);} const post=pr.rows[0];
     if(post.access_type==='free'){await client.query('COMMIT');return json(res,200,{post:await cleanPost(post,true),balancePaise:null},rid);}
     if(post.access_type==='subscription'){
