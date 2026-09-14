@@ -1,4 +1,4 @@
-# CreatorChat 249.5.29 — Final Deep Static Audit
+# CreatorChat 249.5.30 — Final Deep Static Audit
 
 ## Result
 Production-hardening release after a second-pass security and routing review.
@@ -20,7 +20,7 @@ Production-hardening release after a second-pass security and routing review.
 - Source maps: none bundled.
 - `.env`/production dotenv files: none bundled.
 - API manifest: 42 method/path entries across 26 endpoint paths.
-- Release metadata: 249.5.29 consistent across package, frontend marker, manifest and readiness verifier.
+- Release metadata: 249.5.30 consistent across package, frontend marker, manifest and readiness verifier.
 - Health routing: explicit Vercel files added for `/api/health/app` and `/api/health/db`, while retaining the single catch-all.
 - Chat sync: fixed prior `id` shadowing/runtime failure; creator chat price is loaded server-side; message IDs are idempotent; wallet charging is serialized per fan; chat activity updates after successful save.
 - Wallet safety: gift sends and paid chat sends are serialized per fan; post unlocks lock the post row before charging to prevent concurrent double-unlock races.

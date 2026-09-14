@@ -745,7 +745,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
     <div class="row">
       <div style="min-width:0">
         <b>👤 Fan Account</b>
-        <div class="muted">Demo account</div>
+        <div class="muted">Fan account</div>
       </div>
       <span class="pill">Logged in</span>
     </div>
@@ -1517,7 +1517,7 @@ if(typeof s.supportEmail!=='string')s.supportEmail='';
 if(!Array.isArray(s.notifications))s.notifications=[];
 if(!s.notificationPrefs)s.notificationPrefs={creator:true,posts:true,gifts:true,system:true};
 if(!s.creatorProfile)s.creatorProfile={name:'Kaira',email:'',mobile:'',pic:'',cover:''};
-if(!Array.isArray(s.fans))s.fans=[{id:'fan1',name:'Demo Fan',email:'fan@example.com',mobile:'',chatPrice:Number(s.rate||29),messages:[]}];
+if(!Array.isArray(s.fans))s.fans=[];
 if(!s.chatAccess)s.chatAccess={};
 if(typeof s.payoutValue!=='string')s.payoutValue='';
 if(s.planVersion!==3){
@@ -1552,7 +1552,7 @@ if(s.planVersion<4){
 const money=n=>'₹'+Number(n).toLocaleString('en-IN');
 function saveNoRender(){localStorage.setItem('cc6',JSON.stringify(s))}
 function save(){localStorage.setItem('cc6',JSON.stringify(s));render()}
-function saveFanAccount(){let n=document.getElementById('fanName').value.trim(),c=document.getElementById('fanContact').value.trim();if(!n||!c)return alert('Fan name and mobile/email are required.');s.fanAccount={...s.fanAccount,name:n,contact:c,loggedIn:true};if(c.includes('@'))s.fanAccount.email=c;else s.fanAccount.mobile=c;save();alert('Fan account saved (demo).')}
+function saveFanAccount(){let n=document.getElementById('fanName').value.trim(),c=document.getElementById('fanContact').value.trim();if(!n||!c)return alert('Fan name and mobile/email are required.');s.fanAccount={...s.fanAccount,name:n,contact:c,loggedIn:true};if(c.includes('@'))s.fanAccount.email=c;else s.fanAccount.mobile=c;save();alert('Fan account saved.')}
 async function saveFanSettings(){let n=document.getElementById('fanSettingName').value.trim(),e=document.getElementById('fanSettingEmail').value.trim(),m=document.getElementById('fanSettingMobile').value.trim();if(!n)return alert('Name is required.');if(e&&!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid email address.');if(m&&!/^\d{10}$/.test(m))return alert('Mobile number must be 10 digits.');if(s.auth?.status==='signed_in'&&s.auth?.user?.id&&location.protocol!=='file:'){try{const r=await fetch('/api/users/me',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e,mobile:m})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');mergeServerFanLocal(d.user);}catch(err){return alert('Could not update account on server.');}}else{s.fanAccount={...s.fanAccount,name:n,email:e,mobile:m,contact:e||m,loggedIn:true};save();}alert('Fan settings updated.');}
 function rechargeBonus(a){if(a>3000)return Math.floor(a*0.10);if(a===3000)return 300;if(a>=2000)return 150;if(a>=1500)return 100;if(a>=1000)return 50;return 0}
 function updateRechargeBonus(){let el=document.getElementById('rechargeBonus');if(!el)return;let a=Number(document.getElementById('rechargeAmount').value)||0;if(a<500){el.textContent='Minimum ₹500 · Maximum ₹10,000';return}if(a>10000){el.textContent='Maximum recharge ₹10,000';return}let b=rechargeBonus(a);el.textContent=`You pay ₹${a} + ₹${b} bonus = ₹${a+b} wallet credit`}
@@ -1563,6 +1563,10 @@ function isAdminAuthenticated(){
 }
 function setMode(mode){
   if(mode!=='admin'&&mode!=='fan')return;
+  if(mode==='admin' && !(window.CreatorChatAuth?.requireRole?.('admin'))){
+    if(typeof window.unlockAdminMode==='function')window.unlockAdminMode();
+    return;
+  }
   s.mode=mode;
   try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
   document.body.setAttribute('data-mode',mode);
@@ -1611,7 +1615,7 @@ function buildMenu(){
       ['🛟','Support','Help & fan support','support'],
       ['👤','Fan View','Open fan side','home']
     ]
-    : [['⚙️','Settings','Name, email & mobile','fanSettings'],['👑','Admin View','Creator/admin controls','admin'],['🚪','Logout','Sign out of this demo','logout']];
+    : [['⚙️','Settings','Name, email & mobile','fanSettings'],['🔐','Admin Login','Administrator sign in','adminLogin'],['🚪','Logout','Sign out of this demo','logout']];
   document.getElementById('menuModeText').textContent=a?'Admin controls':'Fan menu';
   document.getElementById('menuItems').innerHTML=items.map(x=>`<button class="menu-item" onclick="menuGo(${escapeHtml(JSON.stringify(String(x[3])) )})"><span class="mi">${escapeHtml(x[0])}</span><span><b>${escapeHtml(x[1])}</b><span>${escapeHtml(x[2])}</span></span></button>`).join('');
   let e=s.supportEmail||'Support email not set';
@@ -1624,7 +1628,7 @@ function menuGo(id){
   document.getElementById('menuBackdrop').classList.remove('open');
 
   if(id==='logout'){
-    if(confirm('Do you want to log out?')){s.fanAccount={...s.fanAccount,loggedIn:false};save();alert('Demo logout complete.');}
+    if(confirm('Do you want to log out?')){s.fanAccount={...s.fanAccount,loggedIn:false};save();alert('Logged out.');}
     return;
   }
 
@@ -1632,7 +1636,7 @@ function menuGo(id){
 
   // View switching must also change the actual app mode.
   // This fixes "Admin View" opening the page but leaving Fan navigation active.
-  if(id==='admin'){setMode('admin');return;}
+  if(id==='adminLogin'){if(typeof unlockAdminMode==='function')unlockAdminMode();return;}
   if(id==='home'){setMode('fan');return;}
 
   show(id);
@@ -1943,12 +1947,9 @@ function renderFans(){
   }).join('');
 }
 
-// Keep the built-in demo fan chat testable with the configured demo rate.
+// Keep local fan records compatible with server-backed fan data.
 try{
-  if(Array.isArray(s.fans)){
-    const demo=s.fans.find(x=>String(x.id)==='fan1');
-    if(demo && !Number(demo.chatPrice||0)) demo.chatPrice=Number(s.rate||29);
-  }
+  if(Array.isArray(s.fans))s.fans.forEach(f=>{if(f && !Number.isFinite(Number(f.chatPrice)))f.chatPrice=Number(s.rate||29);});
 }catch(e){}
 function getActiveFan(){
   return (s.fans||[]).find(x=>x.id===s.activeFanId) || (s.fans||[])[0];
@@ -4287,13 +4288,15 @@ try{
     var purchases=arr(f.purchases||f.orders||f.purchaseHistory);
 
     document.getElementById('fanActivitySummary').innerHTML =
-      row('Activity records', activity.length || 'Not available')+
       row('Account status', f.status||'Active')+
-      row('Joined', f.joinedAt||f.createdAt||'Not available');
+      row('Joined', f.joinedAt||f.createdAt||'Not available')+
+      row('Chat conversations', Number(f.chatCount||0))+
+      row('Active subscriptions', Number(f.activeSubscriptions||0))+
+      row('Post purchases', Number(f.postPurchaseCount||0));
 
     document.getElementById('fanWalletSummary').innerHTML =
-      row('Wallet balance', f.balance==null?'Not available':f.balance)+
-      row('Transaction records', tx.length || 'Not available');
+      row('Wallet balance', f.balance==null?'Not available':'₹'+Number(f.balance).toLocaleString('en-IN'))+
+      row('Transaction records', Number(f.transactionCount||tx.length||0));
 
     document.getElementById('fanTransactionsList').innerHTML =
       tx.length ? tx.slice(0,10).map(function(t){
@@ -4380,6 +4383,68 @@ function mergeServerFanLocal(u){
   setTimeout(syncServerFan,800);
   setInterval(syncServerFan,15000);
   document.addEventListener('visibilitychange',function(){if(!document.hidden)syncServerFan();});
+})();
+</script>
+
+
+<script id="step2495-admin-fans-production-sync">
+(function(){
+  if(window.__ccStep2495AdminFansSync)return;
+  window.__ccStep2495AdminFansSync=true;
+  let busy=false;
+  function adminSession(){
+    return !!(window.CreatorChatAuth?.requireRole?.('admin'));
+  }
+  function toFan(x){
+    return {
+      id:String(x.id||''), userId:String(x.id||''), name:String(x.name||''), email:String(x.email||''),
+      mobile:String(x.mobile||''), phone:String(x.mobile||''), status:String(x.status||'active'),
+      balance:Number(x.balance_paise||0)/100, balancePaise:Number(x.balance_paise||0),
+      chatCount:Number(x.chat_count||0), activeSubscriptions:Number(x.active_subscriptions||0),
+      transactionCount:Number(x.transaction_count||0), postPurchaseCount:Number(x.post_purchase_count||0),
+      joinedAt:x.created_at||'', updatedAt:x.updated_at||'', messages:[]
+    };
+  }
+  window.syncAdminFansServer=async function(force){
+    if(busy||!adminSession()||location.protocol==='file:')return false;
+    busy=true;
+    try{
+      const r=await fetch('/api/admin/fans?limit=100',{credentials:'include',cache:'no-store'});
+      const d=await r.json().catch(()=>({}));
+      if(r.status===401||r.status===403){
+        CreatorChatAuth.signOut();s.mode='fan';save();return false;
+      }
+      if(!r.ok)throw new Error(d.error||'Could not load fans');
+      s.fans=Array.isArray(d.fans)?d.fans.map(toFan):[];
+      localStorage.setItem('cc6',JSON.stringify(s));
+      refreshAdminControlCenter();
+      if(String(s.mode)==='admin'){
+        const box=document.getElementById('adminFanList');
+        if(box && document.getElementById('users')?.classList.contains('active'))openFanManager();
+      }
+      return true;
+    }catch(e){return false;}finally{busy=false;}
+  };
+  const originalOpen=window.openFanManager;
+  window.openFanManager=async function(){
+    if(!adminSession()){if(typeof unlockAdminMode==='function')unlockAdminMode();return;}
+    await window.syncAdminFansServer(true);
+    if(typeof originalOpen==='function')originalOpen();
+    const wrap=document.getElementById('adminFanAccountSections');
+    if(wrap)wrap.style.display='none';
+  };
+  const originalRender=window.renderFanAdminActions;
+  window.renderFanAdminActions=function(index){
+    if(!adminSession()){if(typeof unlockAdminMode==='function')unlockAdminMode();return;}
+    if(typeof originalRender==='function')originalRender(index);
+    const f=(s.fans||[])[index];
+    if(f && typeof renderFanAccountSections==='function')renderFanAccountSections(f);
+  };
+  // Never allow a locally persisted admin mode to bypass server-authenticated admin login.
+  if(String(s.mode)==='admin' && !adminSession()){
+    s.mode='fan';
+    try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
+  }
 })();
 </script>
 
@@ -5132,7 +5197,7 @@ function mergeServerFanLocal(u){
     if(!data?.user||String(data.user.role||'').toLowerCase()!=='fan')throw new Error('Fan account could not be signed in.');
     if(typeof CreatorChatAuth!=='undefined')CreatorChatAuth.setSession(data.user,'server');
     s.mode='fan';s.activeCreatorId=String(creator?.id||'');
-    const f=(s.fans||[])[0]||{id:'fan1',name:data.user.name||'Fan',messages:[]};
+    const f=(s.fans||[]).find(x=>String(x.id)===String(data.user.id))||{id:String(data.user.id),name:data.user.name||'Fan',messages:[]};
     f.creatorId=String(creator?.id||'');f.chatPrice=Number(creator?.chatPricePaise||0)/100;f.name=data.user.name||f.name;f.userId=data.user.id;
     s.activeFanId=f.id;s.fans=[f,...(s.fans||[]).filter(x=>x.id!==f.id)];
     save();hideGate();nav();show('profile');renderPublicCreatorProfile();
@@ -5152,7 +5217,28 @@ function mergeServerFanLocal(u){
   loadCreator();
 })();
 </script><!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
-<script id="creatorchat-release-249-5-29">window.CreatorChatProductionRelease529={version:'249.5.29',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true};</script>
+<script id="creatorchat-release-249-5-31">window.CreatorChatProductionRelease531={version:'249.5.31',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true};</script>
 \n<script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
+<script id="creatorchat-step-249-5-31-final-admin-guard">
+(()=>{
+  // Production invariant: a fan must never receive an Admin View action.
+  // Admin access is available only through the server-authenticated Admin Login.
+  function enforce(){
+    const admin=!!(window.CreatorChatAuth?.requireRole?.('admin'));
+    if(!admin){
+      const text=document.getElementById('menuModeText');
+      if(text)text.textContent='Fan menu';
+      const box=document.getElementById('menuItems');
+      if(box){
+        [...box.querySelectorAll('button')].forEach(b=>{
+          if(/admin view|admin controls/i.test(b.textContent||''))b.remove();
+        });
+      }
+    }
+  }
+  setTimeout(enforce,0);
+  setTimeout(enforce,250);
+})();
+</script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-# CreatorChat Step 249.5.29 — Production Hardening
+# CreatorChat Step 249.5.30 — Production Hardening
 
 This release keeps the single `api/[...path].js` catch-all and additionally provides explicit Vercel routes for `/api/health/app` and `/api/health/db`, preventing edge-level misses observed in production.
 
@@ -12,7 +12,7 @@ This release keeps the single `api/[...path].js` catch-all and additionally prov
 - Post unlock now locks the post row to prevent concurrent double-unlock races.
 - Malformed session cookies no longer cause a server error.
 - Admin fan updates validate email/mobile and never attempt to write NULL into NOT NULL user fields.
-- Release/version/readiness metadata updated to 249.5.29.
+- Release/version/readiness metadata updated to 249.5.30.
 
 ## Deployment requirement
 The application still requires the production environment variables documented in `.env.example`; this release does not add or expose secrets and does not create a database provider automatically.
