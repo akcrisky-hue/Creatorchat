@@ -1,5 +1,5 @@
 {
-  "version": "249.5.38",
+  "version": "249.5.46",
   "status": "production-hardening-release",
   "routes": [
     "GET /api/admin/fans",
@@ -43,7 +43,13 @@
     "DELETE /api/subscriptions",
     "POST /api/upi/verify",
     "GET /api/users/me",
-    "GET /api/wallet"
+    "GET /api/wallet",
+    "GET /api/admin/audit",
+    "POST /api/admin/audit",
+    "GET /api/admin/payments",
+    "GET /api/features",
+    "POST /api/features",
+    "PATCH /api/features"
   ],
   "post_actions": [
     "unlock"

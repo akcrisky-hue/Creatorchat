@@ -154,4 +154,146 @@ CREATE TABLE IF NOT EXISTS notifications (
 );
 CREATE INDEX IF NOT EXISTS notifications_user_created_idx ON notifications(user_id,created_at DESC);
 
+
+CREATE TABLE IF NOT EXISTS admin_audit_log (
+  id TEXT PRIMARY KEY,
+  admin_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  action TEXT NOT NULL,
+  target_type TEXT NOT NULL DEFAULT '',
+  target_id TEXT NOT NULL DEFAULT '',
+  details JSONB NOT NULL DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS admin_audit_log_created_idx ON admin_audit_log(created_at DESC);
+CREATE INDEX IF NOT EXISTS admin_audit_log_target_idx ON admin_audit_log(target_type,target_id,created_at DESC);
+
+
+
+CREATE TABLE IF NOT EXISTS live_streams (
+  id TEXT PRIMARY KEY,
+  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  access_type TEXT NOT NULL DEFAULT 'free' CHECK (access_type IN ('free','paid','subscription')),
+  price_paise INTEGER NOT NULL DEFAULT 0 CHECK (price_paise >= 0),
+  scheduled_at TIMESTAMPTZ,
+  started_at TIMESTAMPTZ,
+  ended_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','live','ended','cancelled')),
+  stream_url TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS live_streams_creator_status_idx ON live_streams(creator_id,status,scheduled_at DESC);
+
+CREATE TABLE IF NOT EXISTS interaction_requests (
+  id TEXT PRIMARY KEY,
+  fan_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  type TEXT NOT NULL DEFAULT 'one_to_one' CHECK (type IN ('one_to_one','custom_request')),
+  title TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '',
+  amount_paise INTEGER NOT NULL DEFAULT 0 CHECK (amount_paise >= 0),
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','accepted','in_progress','completed','cancelled','rejected')),
+  due_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS interaction_requests_fan_idx ON interaction_requests(fan_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS interaction_requests_creator_idx ON interaction_requests(creator_id,status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS digital_products (
+  id TEXT PRIMARY KEY,
+  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  description TEXT NOT NULL DEFAULT '',
+  category TEXT NOT NULL DEFAULT 'digital',
+  price_paise INTEGER NOT NULL DEFAULT 0 CHECK (price_paise >= 0),
+  delivery_url TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'published' CHECK (status IN ('draft','published','archived')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS digital_products_creator_idx ON digital_products(creator_id,status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS product_purchases (
+  id TEXT PRIMARY KEY,
+  product_id TEXT NOT NULL REFERENCES digital_products(id) ON DELETE CASCADE,
+  fan_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_paise INTEGER NOT NULL CHECK (amount_paise >= 0),
+  status TEXT NOT NULL DEFAULT 'paid' CHECK (status IN ('paid','refunded','cancelled')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS product_purchases_fan_idx ON product_purchases(fan_id,created_at DESC);
+CREATE INDEX IF NOT EXISTS product_purchases_product_fan_status_idx ON product_purchases(product_id,fan_id,status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS collaborations (
+  id TEXT PRIMARY KEY,
+  creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  brand_name TEXT NOT NULL,
+  title TEXT NOT NULL,
+  brief TEXT NOT NULL DEFAULT '',
+  budget_paise INTEGER NOT NULL DEFAULT 0 CHECK (budget_paise >= 0),
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','applied','accepted','in_progress','submitted','completed','cancelled')),
+  deliverables JSONB NOT NULL DEFAULT '[]'::jsonb,
+  due_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS collaborations_creator_idx ON collaborations(creator_id,status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS moderation_reports (
+  id TEXT PRIMARY KEY,
+  reporter_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  target_type TEXT NOT NULL,
+  target_id TEXT NOT NULL,
+  reason TEXT NOT NULL,
+  details TEXT NOT NULL DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','reviewing','resolved','dismissed')),
+  resolution TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS moderation_reports_status_idx ON moderation_reports(status,created_at DESC);
+
+CREATE TABLE IF NOT EXISTS refund_requests (
+  id TEXT PRIMARY KEY,
+  requester_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  reference_type TEXT NOT NULL,
+  reference_id TEXT NOT NULL,
+  amount_paise INTEGER NOT NULL CHECK (amount_paise > 0),
+  reason TEXT NOT NULL,
+  status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','refunded')),
+  admin_note TEXT NOT NULL DEFAULT '',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS refund_requests_status_idx ON refund_requests(status,created_at DESC);
+CREATE INDEX IF NOT EXISTS refund_requests_requester_idx ON refund_requests(requester_id,created_at DESC);
+CREATE UNIQUE INDEX IF NOT EXISTS wallet_refund_request_ref_uq ON wallet_transactions(reference_type,reference_id,type) WHERE reference_type='refund_request' AND type='refund';
+
+ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS profile_pic_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS cover_url TEXT NOT NULL DEFAULT '';
+ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS public_email TEXT NOT NULL DEFAULT '';
+ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS profile_pic_key TEXT NOT NULL DEFAULT '';
+ALTER TABLE creator_profiles ADD COLUMN IF NOT EXISTS cover_key TEXT NOT NULL DEFAULT '';
+
+CREATE TABLE IF NOT EXISTS live_access (
+  id TEXT PRIMARY KEY, live_id TEXT NOT NULL REFERENCES live_streams(id) ON DELETE CASCADE,
+  fan_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  amount_paise INTEGER NOT NULL DEFAULT 0 CHECK(amount_paise>=0),
+  status TEXT NOT NULL DEFAULT 'paid' CHECK(status IN ('paid','refunded')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(live_id,fan_id)
+);
+CREATE INDEX IF NOT EXISTS live_access_fan_idx ON live_access(fan_id,created_at DESC);
+CREATE TABLE IF NOT EXISTS creator_earnings (
+  id TEXT PRIMARY KEY, creator_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  source_type TEXT NOT NULL, source_id TEXT NOT NULL, gross_paise INTEGER NOT NULL CHECK(gross_paise>=0),
+  fee_paise INTEGER NOT NULL DEFAULT 0 CHECK(fee_paise>=0), net_paise INTEGER NOT NULL CHECK(net_paise>=0),
+  status TEXT NOT NULL DEFAULT 'available' CHECK(status IN ('pending','available','paid','reversed')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(), UNIQUE(source_type,source_id)
+);
+CREATE INDEX IF NOT EXISTS creator_earnings_creator_idx ON creator_earnings(creator_id,created_at DESC);
+
 COMMIT;

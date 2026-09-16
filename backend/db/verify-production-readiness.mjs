@@ -19,11 +19,11 @@ checks.push(['chat-sync route source',await exists('backend/api/chat-sync/index.
 const chatSyncSource=await fs.readFile(path.join(root,'backend/api/chat-sync/index.mjs'),'utf8');
 checks.push(['chat-sync has no id variable shadowing',!/(const|let|var)\s+id\s*=/.test(chatSyncSource)]);
 let versionOk=true;
-for(const f of ['package.json','backend/package.json','backend/API_MANIFEST.json']){const x=JSON.parse(await fs.readFile(path.join(root,f),'utf8'));if(x.version!=='249.5.38')versionOk=false;}
-checks.push(['version 249.5.38',versionOk]);
+for(const f of ['package.json','backend/package.json','backend/API_MANIFEST.json']){const x=JSON.parse(await fs.readFile(path.join(root,f),'utf8'));if(x.version!=='249.5.46')versionOk=false;}
+checks.push(['version 249.5.46',versionOk]);
 const envKeys=['DATABASE_URL','SESSION_SECRET','ADMIN_EMAIL','ADMIN_PASSWORD','RAZORPAY_KEY_ID','RAZORPAY_KEY_SECRET','R2_ACCOUNT_ID','R2_BUCKET','R2_ACCESS_KEY_ID','R2_SECRET_ACCESS_KEY'];
 const configured=envKeys.filter(k=>process.env[k]);
 checks.push(['production env configured in runtime',configured.length===envKeys.length]);
-const report={version:'249.5.38',staticChecks:checks.map(([name,ok])=>({name,ok})),runtimeEnvConfigured:configured,liveTests:'Not run without production credentials/account access'};
+const report={version:'249.5.46',staticChecks:checks.map(([name,ok])=>({name,ok})),runtimeEnvConfigured:configured,liveTests:'Not run without production credentials/account access'};
 console.log(JSON.stringify(report,null,2));
 if(checks.some(([,ok])=>!ok))process.exitCode=1;

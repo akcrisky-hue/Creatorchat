@@ -3,18 +3,19 @@ import pg from 'pg';
 const { Client } = pg;
 const requiredTables = [
   'users','creator_profiles','fans','chats','messages','wallet_transactions',
-  'payment_orders','subscription_plans','subscriptions','posts','post_unlocks','notifications'
+  'payment_orders','subscription_plans','subscriptions','posts','post_unlocks','notifications','admin_audit_log','live_streams','interaction_requests','digital_products','product_purchases','collaborations','moderation_reports','refund_requests','live_access','creator_earnings'
 ];
 const requiredColumns = {
   users: ['support_email','preferences'],
   subscriptions: ['plan_id','amount_paise','expires_at'],
-  posts: ['title','access_type','price_paise','plan_id','blur','media']
+  posts: ['title','access_type','price_paise','plan_id','blur','media'],
+  creator_profiles: ['profile_pic_url','cover_url','public_email','profile_pic_key','cover_key']
 };
 const requiredIndexes = [
   'users_role_status_idx','wallet_tx_user_created_idx','payment_orders_user_idx',
   'subscription_plans_creator_idx','subscriptions_fan_status_idx',
   'subscriptions_creator_status_idx','posts_creator_created_idx','posts_creator_status_idx',
-  'post_unlocks_fan_idx','notifications_user_created_idx'
+  'post_unlocks_fan_idx','notifications_user_created_idx','admin_audit_log_created_idx','live_streams_creator_status_idx','interaction_requests_creator_idx','interaction_requests_fan_idx','digital_products_creator_idx','product_purchases_fan_idx','collaborations_creator_idx','moderation_reports_status_idx','refund_requests_status_idx','wallet_refund_request_ref_uq','live_access_fan_idx','creator_earnings_creator_idx'
 ];
 
 if (!process.env.DATABASE_URL) {

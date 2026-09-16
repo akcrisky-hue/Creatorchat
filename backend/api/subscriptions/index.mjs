@@ -68,6 +68,7 @@ export default async function handler(req,res){
     const p=await client.query(`SELECT id,creator_id,name,duration_months,price_paise FROM subscription_plans WHERE id=$1 AND active=true FOR SHARE`,[planId]);
     if(!p.rowCount){await client.query('ROLLBACK');return json(res,404,{error:'Subscription plan is not available'},rid);}
     const plan=p.rows[0];
+    await client.query(`SELECT id FROM users WHERE id=$1 FOR UPDATE`,[fanId]);
     const fan=await client.query(`SELECT id FROM users WHERE id=$1 AND role='fan' AND status='active'`,[fanId]);
     if(!fan.rowCount){await client.query('ROLLBACK');return json(res,404,{error:'Fan not found'},rid);}
     const creator=await client.query(`SELECT id FROM users WHERE id=$1 AND role='creator' AND status='active'`,[plan.creator_id]);
@@ -85,6 +86,7 @@ export default async function handler(req,res){
     if(price>0){
      await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'debit',$3,'subscription',$4,'completed')`,[id('wtx'),fanId,price,subId]);
      await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'credit',$3,'subscription',$4,'completed')`,[id('wtx'),plan.creator_id,price,subId]);
+     await client.query(`INSERT INTO creator_earnings(id,creator_id,source_type,source_id,gross_paise,fee_paise,net_paise,status) VALUES($1,$2,'subscription',$3,$4,0,$4,'available') ON CONFLICT(source_type,source_id) DO UPDATE SET gross_paise=EXCLUDED.gross_paise,net_paise=EXCLUDED.net_paise,status='available'`,[id('earn'),plan.creator_id,subId,price]);
     }
     const r=await client.query(`SELECT id,fan_id,creator_id,plan_id,amount_paise,status,expires_at,created_at,updated_at FROM subscriptions WHERE id=$1`,[subId]);
     await client.query("INSERT INTO notifications(id,user_id,type,payload) VALUES($1,$2,'subscription_event',$3::jsonb)",[id('notif'),plan.creator_id,JSON.stringify({title:'New subscription',text:`A fan subscribed to ${plan.name}.`,icon:'⭐',amountPaise:price,planId:plan.id})]);

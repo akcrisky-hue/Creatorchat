@@ -62,6 +62,7 @@ export default async function handler(req,res){
           const debit=await client.query(`SELECT 1 FROM wallet_transactions WHERE reference_type='chat_message' AND reference_id=$1 AND type='debit' LIMIT 1`,[messageId]);
           if(!debit.rowCount) continue;
           await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'credit',$3,'chat_message',$4,'completed') ON CONFLICT(reference_type,reference_id,type) DO NOTHING`,[id('wtx'),cRow.creator_id,price,messageId]);
+          await client.query(`INSERT INTO creator_earnings(id,creator_id,source_type,source_id,gross_paise,fee_paise,net_paise,status) VALUES($1,$2,'chat_message',$3,$4,0,$4,'available') ON CONFLICT(source_type,source_id) DO NOTHING`,[id('earn'),cRow.creator_id,messageId,price]);
         }
         const q=await client.query(`INSERT INTO messages(id,chat_id,sender_id,body,status,created_at)
           VALUES($1,$2,$3,$4,'sent',COALESCE($5::timestamptz,now()))

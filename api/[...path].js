@@ -1,4 +1,6 @@
 import adminFans from '../backend/api/admin/fans/index.mjs';
+import adminAudit from '../backend/api/admin/audit/index.mjs';
+import adminPayments from '../backend/api/admin/payments/index.mjs';
 import analytics from '../backend/api/analytics/index.mjs';
 import authLogin from '../backend/api/auth/login.mjs';
 import authLogout from '../backend/api/auth/logout.mjs';
@@ -24,9 +26,12 @@ import subscriptions from '../backend/api/subscriptions/index.mjs';
 import upiVerify from '../backend/api/upi/verify.mjs';
 import usersMe from '../backend/api/users/me.mjs';
 import wallet from '../backend/api/wallet/index.mjs';
+import features from '../backend/api/features/index.mjs';
 
 const ROUTES = new Map([
   ['/api/admin/fans', adminFans],
+  ['/api/admin/audit', adminAudit],
+  ['/api/admin/payments', adminPayments],
   ['/api/analytics', analytics],
   ['/api/auth/login', authLogin],
   ['/api/auth/logout', authLogout],
@@ -52,6 +57,7 @@ const ROUTES = new Map([
   ['/api/upi/verify', upiVerify],
   ['/api/users/me', usersMe],
   ['/api/wallet', wallet],
+  ['/api/features', features],
 ]);
 
 function getPath(req) {

@@ -1,7 +1,8 @@
 import { db, json, body, requireSession, requestId, rateLimit, requireSameOrigin, id } from '../../lib.mjs';
 import { validateMedia, mediaKey, presignUpload, presignDownload, deleteObject, isConfigured, limits } from '../../storage/r2.mjs';
 
-function ownedKey(key, creatorId){return String(key||'').startsWith(`creators/${String(creatorId).replace(/[^a-zA-Z0-9_-]/g,'_')}/posts/`);}
+function creatorPrefix(creatorId){return `creators/${String(creatorId).replace(/[^a-zA-Z0-9_-]/g,'_')}/`;}
+function ownedKey(key, creatorId){const k=String(key||'');const p=creatorPrefix(creatorId);return k.startsWith(p+'posts/')||k.startsWith(p+'profile/');}
 export default async function handler(req,res){
  const rid=requestId(req); try{
   const s=requireSession(req,res,['creator','admin','fan'],rid); if(!s)return;
@@ -12,7 +13,7 @@ export default async function handler(req,res){
   const b=await body(req), action=String(b.action||'');
   if(req.method==='POST'&&action==='presign-upload'){
    if(s.role!=='creator'&&s.role!=='admin')return json(res,403,{error:'Creator access required'},rid);
-   const creatorId=s.role==='admin'&&b.creatorId?String(b.creatorId):String(s.id), meta=validateMedia(b), mediaId=id('media'), key=mediaKey(creatorId,mediaId,meta.name);
+   const creatorId=s.role==='admin'&&b.creatorId?String(b.creatorId):String(s.id), meta=validateMedia(b), mediaId=id('media'), safeName=String(meta.name||'file').replace(/[^a-zA-Z0-9._-]/g,'_').slice(0,120), key=b.kind==='profile'?`${creatorPrefix(creatorId)}profile/${mediaId}-${safeName}`:mediaKey(creatorId,mediaId,meta.name);
    return json(res,200,{uploadUrl:presignUpload(key,meta.type),media:{id:mediaId,name:meta.name,type:meta.type,size:meta.size,storageKey:key}},rid);
   }
   if(req.method==='POST'&&action==='presign-download'){

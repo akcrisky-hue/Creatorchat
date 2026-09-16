@@ -42,6 +42,7 @@ export default async function handler(req,res){
           if(balance<price){await client.query('ROLLBACK');return json(res,402,{error:'Insufficient wallet balance',requiredPaise:price,balancePaise:balance},rid);}
           await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'debit',$3,'chat_message',$4,'completed')`,[id('wtx'),s.id,price,messageId]);
           await client.query(`INSERT INTO wallet_transactions(id,user_id,type,amount_paise,reference_type,reference_id,status) VALUES($1,$2,'credit',$3,'chat_message',$4,'completed')`,[id('wtx'),chat.creator_id,price,messageId]);
+          await client.query(`INSERT INTO creator_earnings(id,creator_id,source_type,source_id,gross_paise,fee_paise,net_paise,status) VALUES($1,$2,'chat_message',$3,$4,0,$4,'available') ON CONFLICT(source_type,source_id) DO NOTHING`,[id('earn'),chat.creator_id,messageId,price]);
         }
         const q=await client.query(`INSERT INTO messages(id,chat_id,sender_id,body) VALUES($1,$2,$3,$4) RETURNING id,chat_id AS "chatId",sender_id AS "senderId",body,status,created_at AS "createdAt"`,[messageId,chatId,s.id,text]);
         await client.query(`UPDATE chats SET updated_at=now() WHERE id=$1`,[chatId]);

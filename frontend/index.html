@@ -465,6 +465,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
 .public-entry-note{font-size:12px;color:#777;text-align:center;margin-top:12px}
 </style>
   <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style id="renown-inspired-feature-style">#featureLive .grid,#featureRequests .grid,#featureProducts .grid,#featureCollabs .grid,#featureModeration .grid,#featureRefunds .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:9px}#featureLive input,#featureLive select,#featureRequests input,#featureRequests textarea,#featureProducts input,#featureProducts textarea,#featureCollabs input,#featureCollabs textarea,#featureModeration input,#featureModeration textarea,#featureRefunds input,#featureRefunds textarea,#featureRequests select{box-sizing:border-box;padding:10px;border:1px solid #ddd;border-radius:10px;font:inherit;min-width:0}#featureLive .full,#featureRequests .full,#featureProducts .full,#featureCollabs .full,#featureModeration .full,#featureRefunds .full{width:100%}</style>
 </head>
 <body>
 
@@ -521,6 +522,15 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
     <button class="btn" type="button" onclick="show('adminGifts')">🎁 Manage Gifts</button>
     <button class="btn" type="button" onclick="show('adminTransactions')">💳 Transactions</button>
     <button class="btn" type="button" onclick="show('settings')">⚙️ Admin Settings</button>
+    <button class="btn" type="button" onclick="show('insights')">📈 Analytics</button>
+    <button class="btn" type="button" onclick="show('adminAudit')">🛡️ Audit Log</button>
+    <button class="btn" type="button" onclick="show('paymentReconcile')">🧾 Payment Reconciliation</button>
+    <button class="btn" type="button" onclick="show('featureLive')">🔴 Live Streaming</button>
+    <button class="btn" type="button" onclick="show('featureRequests')">📩 1-to-1 Requests</button>
+    <button class="btn" type="button" onclick="show('featureProducts')">🛍️ Digital Services</button>
+    <button class="btn" type="button" onclick="show('featureCollabs')">🤝 Collaborations</button>
+    <button class="btn" type="button" onclick="show('featureModeration')">🛡️ Moderation</button>
+    <button class="btn" type="button" onclick="show('featureRefunds')">↩️ Refunds</button>
   </div>
 </div>
 
@@ -706,7 +716,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
 <section id="users" class="page">
 <div class="card">
   <div class="row"><div><h2>👥 Fans</h2><div class="muted">Manage fan conversations and chat pricing</div></div><span class="pill">Admin</span></div>
-  <div id="fanList"></div>
+  <div class="grid" style="margin-top:10px"><input id="adminFanSearch" placeholder="Search name, email or mobile" oninput="filterAdminFans()"><select id="adminFanStatusFilter" onchange="filterAdminFans()"><option value="">All statuses</option><option value="active">Active</option><option value="blocked">Blocked</option><option value="suspended">Suspended</option></select></div><div id="fanList"></div>
 </div>
 
 <div id="adminFansManagementCard" class="card" style="margin-top:12px">
@@ -738,8 +748,17 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
 </div>
 </section>
 
+<section id="adminAudit" class="page"><div class="card"><div class="row"><div><h2>🛡️ Admin Audit Log</h2><div class="muted">Track important administrator actions with time and target.</div></div><button class="btn light" onclick="refreshAdminAudit()">Refresh</button></div><div id="adminAuditServerList" style="margin-top:12px"></div></div></section>
+<section id="paymentReconcile" class="page"><div class="card"><div class="row"><div><h2>🧾 Payment Reconciliation</h2><div class="muted">Compare paid wallet orders with their recorded wallet credit.</div></div><button class="btn light" onclick="refreshPaymentReconciliation()">Refresh</button></div><div class="grid" style="margin-top:12px"><div class="stat"><b id="reconTotal">0</b><div class="muted">Orders</div></div><div class="stat"><b id="reconPaid">0</b><div class="muted">Paid</div></div><div class="stat"><b id="reconMismatch">0</b><div class="muted">Mismatches</div></div></div><div id="paymentReconcileList" style="margin-top:12px"></div></div></section>
 <section id="ledger" class="page"><div class="card"><h2>📊 Admin Ledger</h2><p class="muted">Complete transaction view for admin.</p><div id="adminLedger"></div></div></section>
 
+
+<section id="featureLive" class="page"><div class="card"><div class="row"><div><h2>🔴 Live Streaming</h2><div class="muted">Schedule and manage creator live events. Video transport/streaming provider can be connected later without changing the data model.</div></div><button class="btn light" onclick="ccFeatureLoad('live')">Refresh</button></div><div class="grid" style="margin-top:12px"><input id="liveTitle" placeholder="Live title"><input id="liveDescription" placeholder="Description"><select id="liveAccess"><option value="free">Free</option><option value="paid">Paid</option><option value="subscription">Subscription</option></select><input id="livePrice" type="number" min="0" step="1" placeholder="Price ₹"><input id="liveScheduled" type="datetime-local"><input id="liveUrl" placeholder="Optional stream URL"></div><button class="btn full" style="margin-top:10px" onclick="ccFeatureCreate('live')">Create Live Event</button><div id="liveList" style="margin-top:12px"></div></div></section>
+<section id="featureRequests" class="page"><div class="card"><div class="row"><div><h2>📩 1-to-1 / Custom Requests</h2><div class="muted">Paid interaction request workflow with status tracking.</div></div><button class="btn light" onclick="ccFeatureLoad('request')">Refresh</button></div><div class="grid" style="margin-top:12px"><input id="requestCreatorId" placeholder="Creator ID (fan only)"><input id="requestTitle" placeholder="Request title"><textarea id="requestDetails" placeholder="What do you need?"></textarea><input id="requestAmount" type="number" min="0" step="1" placeholder="Agreed amount ₹"><input id="requestDue" type="datetime-local"></div><button class="btn full" style="margin-top:10px" onclick="ccFeatureCreate('request')">Submit Request</button><div id="requestList" style="margin-top:12px"></div></div></section>
+<section id="featureProducts" class="page"><div class="card"><div class="row"><div><h2>🛍️ Digital Products & Services</h2><div class="muted">Creator-managed digital products/services with pricing and delivery reference.</div></div><button class="btn light" onclick="ccFeatureLoad('product')">Refresh</button></div><div class="grid" style="margin-top:12px"><input id="productCreatorId" placeholder="Creator ID"><input id="productTitle" placeholder="Product / service title"><input id="productCategory" placeholder="Category e.g. consultation"><input id="productPrice" type="number" min="0" step="1" placeholder="Price ₹"><textarea id="productDescription" placeholder="Description"></textarea><input id="productDelivery" placeholder="Delivery/access URL"></div><button class="btn full" style="margin-top:10px" onclick="ccFeatureCreate('product')">Publish Product / Service</button><div id="productList" style="margin-top:12px"></div></div></section>
+<section id="featureCollabs" class="page"><div class="card"><div class="row"><div><h2>🤝 Brand Collaborations</h2><div class="muted">Campaign, budget, deliverables and status tracking.</div></div><button class="btn light" onclick="ccFeatureLoad('collaboration')">Refresh</button></div><div class="grid" style="margin-top:12px"><input id="collabCreatorId" placeholder="Creator ID"><input id="collabBrand" placeholder="Brand name"><input id="collabTitle" placeholder="Campaign title"><input id="collabBudget" type="number" min="0" step="1" placeholder="Budget ₹"><textarea id="collabBrief" placeholder="Campaign brief"></textarea><input id="collabDue" type="datetime-local"></div><button class="btn full" style="margin-top:10px" onclick="ccFeatureCreate('collaboration')">Create Collaboration</button><div id="collabList" style="margin-top:12px"></div></div></section>
+<section id="featureModeration" class="page"><div class="card"><div class="row"><div><h2>🛡️ Reports & Moderation</h2><div class="muted">Fan reports and admin resolution workflow.</div></div><button class="btn light" onclick="ccFeatureLoad('report')">Refresh</button></div><div class="grid" style="margin-top:12px"><input id="reportTargetType" placeholder="Target type: post/message/user"><input id="reportTargetId" placeholder="Target ID"><input id="reportReason" placeholder="Reason"><textarea id="reportDetails" placeholder="Details"></textarea></div><button class="btn full" style="margin-top:10px" onclick="ccFeatureCreate('report')">Submit Report</button><div id="reportList" style="margin-top:12px"></div></div></section>
+<section id="featureRefunds" class="page"><div class="card"><div class="row"><div><h2>↩️ Refund Requests</h2><div class="muted">Customer refund requests with admin approval/rejection and wallet credit on completed refund.</div></div><button class="btn light" onclick="ccFeatureLoad('refund')">Refresh</button></div><div class="grid" style="margin-top:12px"><input id="refundReferenceType" placeholder="Reference type"><input id="refundReferenceId" placeholder="Reference ID"><input id="refundAmount" type="number" min="1" step="1" placeholder="Amount ₹"><textarea id="refundReason" placeholder="Reason"></textarea></div><button class="btn full" style="margin-top:10px" onclick="ccFeatureCreate('refund')">Request Refund</button><div id="refundList" style="margin-top:12px"></div></div></section>
 <section id="home" class="page">
   <div class="card">
     <div class="row">
@@ -1123,9 +1142,12 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
     <div class="stats-grid">
       <div class="stat"><b id="insightPosts">0</b><span>Posts</span></div>
       <div class="stat"><b id="insightPlans">0</b><span>Plans</span></div>
-      <div class="stat"><b id="insightEarnings">₹0</b><span>Earnings</span></div>
+      <div class="stat"><b id="insightEarnings">₹0</b><span>Recorded revenue</span></div>
+      <div class="stat"><b id="insightChats">0</b><span>Active chats</span></div>
+      <div class="stat"><b id="insightSubscriptions">0</b><span>Active subscriptions</span></div>
+      <div class="stat"><b id="insightMessages">0</b><span>Messages</span></div>
     </div>
-    <p class="muted" style="margin-top:12px">Detailed analytics can be connected to real transactions later.</p>
+    <p class="muted" style="margin-top:12px">Live production metrics are loaded from the server for administrators.</p>
   </div>
 </section>
 
@@ -1230,7 +1252,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
     <span class="pill">Public</span>
   </div>
   <input id="creatorPublicLink" readonly style="margin-top:10px;background:#f7f7fb" value="">
-  <button class="btn full" type="button" onclick="copyCreatorPublicLink()">📋 Copy Fan Link</button>
+  <div class="grid" style="margin-top:8px"><button class="btn" type="button" onclick="copyCreatorPublicLink()">📋 Copy Fan Link</button><button class="btn light" type="button" onclick="shareCreatorPublicLink()">📤 Share Link</button></div>
   <div class="muted" style="margin-top:7px">Fans opening this link will see only Fan Login / Create Fan Account.</div>
 </div>
 
@@ -1578,7 +1600,7 @@ function toggleMode(){
 }
 function show(id){
   document.body.setAttribute('data-mode',s.mode);
-      const adminOnlyPages=new Set(['admin','pricing','adminTransactions','adminGifts','posts','adminChat','users','ledger','orders','orderHistory','payout','insights','notifications','alerts']);
+      const adminOnlyPages=new Set(['admin','pricing','adminTransactions','adminGifts','posts','adminChat','users','ledger','orders','orderHistory','payout','insights','notifications','alerts','featureLive','featureRequests','featureProducts','featureCollabs','featureModeration','featureRefunds']);
       if(s.mode!=='admin' && adminOnlyPages.has(id)){ id='home_duplicate_1'; }
       let target=document.getElementById(id);
       if(!target)return;
@@ -1592,8 +1614,8 @@ function show(id){
 function nav(){
   let a=s.mode==='admin';
   let n=a
-    ? [['admin','🏠','Dashboard'],['pricing','💬','Pricing'],['posts','🔒','Paid Post'],['adminGifts','🎁','Gifts'],['users','👥','Fans']]
-    : [['home','🏠','Home'],['profile','⭐','Creator'],['paidPosts','🔒','Posts'],['chat','💬','Chat'],['wallet','💰','Wallet']];
+    ? [['admin','🏠','Dashboard'],['pricing','💬','Pricing'],['posts','🔒','Paid Post'],['adminGifts','🎁','Gifts'],['users','👥','Fans'],['featureLive','🔴','Live'],['featureProducts','🛍️','Services']]
+    : [['home','🏠','Home'],['profile','⭐','Creator'],['paidPosts','🔒','Posts'],['chat','💬','Chat'],['wallet','💰','Wallet'],['featureLive','🔴','Live'],['featureProducts','🛍️','Services'],['featureRequests','📩','Requests']];
   let current=document.querySelector('.page.active')?.id||(a?'admin':'home');
   document.getElementById('nav').innerHTML=n.map(x=>`<button class="${x[0]===current?'active':''}" onclick="show(${escapeHtml(JSON.stringify(String(x[0])) )})">${escapeHtml(x[1])}<br>${escapeHtml(x[2])}</button>`).join('');
   buildMenu();
@@ -1612,6 +1634,12 @@ function buildMenu(){
       ['🔔','Notifications','Send updates to fans','notifications'],
       ['🚨','Alert Settings','Choose admin alerts','alerts'],
       ['📊','Ledger','Complete transaction record','ledger'],
+      ['🔴','Live Streaming','Schedule and manage live events','featureLive'],
+      ['📩','1-to-1 Requests','Manage paid interaction requests','featureRequests'],
+      ['🛍️','Digital Services','Manage products and services','featureProducts'],
+      ['🤝','Brand Collaborations','Manage creator campaigns','featureCollabs'],
+      ['🛡️','Moderation','Reports and content safety','featureModeration'],
+      ['↩️','Refunds','Review refund requests','featureRefunds'],
       ['⚙️','Settings','Support email & interface','settings'],
       ['📜','Terms of Service','Platform rules','terms'],
       ['🛟','Support','Help & fan support','support'],
@@ -1619,6 +1647,9 @@ function buildMenu(){
     ]
     : [
       ['⚙️','Settings','Name, email & mobile','fanSettings'],
+      ['🔴','Live','Join available live events','featureLive'],
+      ['🛍️','Services','Browse creator products/services','featureProducts'],
+      ['📩','Requests','Your 1-to-1 requests','featureRequests'],
       ['🔐','Admin Login','Administrator sign in','adminLogin'],
       ...(verified&&signedIn ? [['🚪','Logout','Sign out','logout']] : [])
     ];
@@ -1657,11 +1688,23 @@ function menuGo(id){
 }
 function openSupport(){document.getElementById('menuBackdrop').classList.remove('open');document.getElementById('supportModal').classList.add('open')}
 function closeSupport(){document.getElementById('supportModal').classList.remove('open')}
-function refreshInsights(){
-  let p=document.getElementById('insightPosts'),pl=document.getElementById('insightPlans'),e=document.getElementById('insightEarnings');
+async function refreshInsights(){
+  let p=document.getElementById('insightPosts'),pl=document.getElementById('insightPlans'),e=document.getElementById('insightEarnings'),c=document.getElementById('insightChats'),sub=document.getElementById('insightSubscriptions'),m=document.getElementById('insightMessages');
   if(p)p.textContent=(s.posts||[]).length;
   if(pl)pl.textContent=(s.plans||[]).length;
   if(e)e.textContent='₹'+Number(s.earn||0).toLocaleString('en-IN');
+  if(location.protocol==='file:'||!window.CreatorChatAuth?.requireRole?.('admin'))return;
+  try{
+    const r=await CreatorChatAuth.api('/api/analytics');
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok)throw new Error(d.error||'Analytics unavailable');
+    if(p)p.textContent=String(d.posts??0);
+    if(c)c.textContent=String(d.activeChats??0);
+    if(sub)sub.textContent=String(d.activeSubscriptions??0);
+    if(m)m.textContent=String(d.messages??0);
+    if(e)e.textContent=money(Number(d.revenuePaise||0)/100);
+    if(pl)pl.textContent=String(d.plans??0);
+  }catch(e){/* keep safe local preview values if server analytics is temporarily unavailable */}
 }
 function savePayout(){saveVerifiedPayoutDetails();}
 
@@ -1780,7 +1823,8 @@ function creatorPublicSlug(name){
 }
 function getCreatorPublicLink(){
   const name=String(s.creatorProfile?.name||'').trim();
-  return name ? location.origin+'/?creator='+encodeURIComponent(creatorPublicSlug(name)) : '';
+  const id=String(s.creatorProfile?.id||s.creatorProfile?.userId||s.creatorId||s.activeCreatorId||'').trim();
+  return name ? location.origin+'/?creator='+encodeURIComponent(creatorPublicSlug(name))+(id?'&creatorId='+encodeURIComponent(id):'') : '';
 }
 function renderCreatorPublicLink(){
   const el=document.getElementById('creatorPublicLink');
@@ -1789,8 +1833,18 @@ function renderCreatorPublicLink(){
 async function copyCreatorPublicLink(){
   const el=document.getElementById('creatorPublicLink');
   const link=el?.value||getCreatorPublicLink();
+  if(!link)return alert('Creator public link is not available yet.');
   try{await navigator.clipboard.writeText(link);alert('Fan profile link copied.');}
   catch(e){if(el){el.select();document.execCommand('copy');alert('Fan profile link copied.');}}
+}
+async function shareCreatorPublicLink(){
+  const link=getCreatorPublicLink();
+  if(!link)return alert('Creator public link is not available yet.');
+  const name=String(s.creatorProfile?.name||'Creator').trim()||'Creator';
+  try{
+    if(navigator.share){await navigator.share({title:'Chat with '+name,text:'Join '+name+' on CreatorChat.',url:link});return;}
+  }catch(e){if(e?.name==='AbortError')return;}
+  await copyCreatorPublicLink();
 }
 
 
@@ -1955,7 +2009,7 @@ function renderFans(){
     let preview=last?(last.media?last.text||'Media message':last.text||'Message'):'No messages yet';
     return `<button type="button" onclick="openAdminChat('${f.id}')" style="width:100%;text-align:left;background:none;border:0;border-bottom:1px solid #eee;padding:12px 0;cursor:pointer">
       <div class="row" style="gap:10px">
-        <div style="min-width:0;flex:1"><b>${f.name||'Fan'}</b><div class="muted">${f.email||'No email'} · Chat ₹${f.chatPrice||0}</div><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${preview}</div></div>
+        <div style="min-width:0;flex:1"><b>${escapeHtml(f.name||'Fan')}</b><div class="muted">${escapeHtml(f.email||'No email')} · Chat ₹${Number(f.chatPrice||0)}</div><div class="muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(preview)}</div></div>
         ${unread?`<span class="unread-badge">${unread>99?'99+':unread}</span>`:''}
       </div></button>`;
   }).join('');
@@ -2432,7 +2486,7 @@ function openPostPreview(title,body){
   const m=document.getElementById('postPreviewModal'),t=document.getElementById('postPreviewTitle'),b=document.getElementById('postPreviewBody');
   if(!m||!t||!b)return;
   t.textContent=title||'Post Preview';
-  b.innerHTML=body||'<div class="muted">No preview available.</div>';
+  b.textContent=body||'No preview available.';
   m.style.setProperty('display','flex','important');
 }
 function closePostPreview(){
@@ -2458,9 +2512,9 @@ function renderAdminAudit(){
   const el=document.getElementById('adminAuditList');if(!el)return;
   const rows=Array.isArray(s.adminAudit)?s.adminAudit.slice().reverse():[];
   el.innerHTML=rows.length?rows.slice(0,25).map(r=>`<div style="padding:9px 0;border-bottom:1px solid #eee">
-    <b>${r.action||'Action'}</b>
-    <div class="muted">${r.detail||''}</div>
-    <small class="muted">${r.at?new Date(r.at).toLocaleString():''}</small>
+    <b>${escapeHtml(r.action||'Action')}</b>
+    <div class="muted">${escapeHtml(r.detail||'')}</div>
+    <small class="muted">${escapeHtml(r.at?new Date(r.at).toLocaleString(): '')}</small>
   </div>`).join(''):'<div class="muted">No admin activity yet.</div>';
 }
 
@@ -2634,8 +2688,8 @@ const adminGiftsList=document.getElementById('adminGiftsList');if(adminGiftsList
 const fanGifts=document.getElementById('fanGifts');if(fanGifts)fanGifts.innerHTML=s.giftCatalog.filter(g=>g.active).map(g=>`<div class="gift" onclick="gift(${escapeHtml(JSON.stringify(g.id))})">${escapeHtml(g.emoji||'🎁')}<b>${money(g.price)}</b><span class="muted">${escapeHtml(g.name||'Gift')}</span></div>`).join('');
 const rechargeBox=document.getElementById('recharge');if(rechargeBox)rechargeBox.innerHTML=[500,1000,1500,2000,3000,5000,10000].map(v=>`<div class="gift" data-wallet-recharge="1" onclick="recharge(${v})">💳<b>${money(v)}</b><span class="muted">Recharge</span></div>`).join('');
 const adminLedger=document.getElementById('adminLedger');if(adminLedger)adminLedger.innerHTML=s.tx.length?s.tx.slice().reverse().map(x=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span>${escapeHtml(x.d||'Transaction')}</span><b>${money(x.a)}</b></div>`).join(''):'No transactions yet.';
-renderDraftPosts();renderSavedPosts();const postList=document.getElementById('postList');let publishedPosts=(s.posts||[]).filter(p=>p.status!=='draft');if(postList)postList.innerHTML=publishedPosts.length?publishedPosts.slice().reverse().map(p=>`<div style="padding:11px 0;border-bottom:1px solid #eee"><div class="row"><b>${p.title||'Untitled'}</b><b>${p.access==='subscription'?'⭐ Subscription':money(p.price)}</b></div><div class="muted" style="margin-top:5px">${p.text||p.content||''}</div>${p.media?.length?`<div class="muted" style="margin-top:6px">📎 ${p.media.length} media file(s): ${p.media.map(m=>m.name).join(', ')}</div>`:''}<div style="margin-top:8px"><button class="btn light" onclick="editPost(${JSON.stringify(String(p.id))})">EDIT</button> <button class="btn light" onclick="deletePost(${JSON.stringify(String(p.id))})">DELETE</button></div></div>`).join(''):'No posts yet.';
-const fanPostList=document.getElementById('fanPostList');if(fanPostList){const visibleFanPosts=s.posts.filter(p=>fanPostFilter==='all'||(fanPostFilter==='subscription'&&p.access==='subscription')||(fanPostFilter==='paid'&&p.access!=='subscription'));fanPostList.innerHTML=visibleFanPosts.length?visibleFanPosts.slice().reverse().map(p=>{const plan=p.access==='subscription'?s.plans.find(q=>String(q.id)===String(p.planId)):null;const open=!!(p.accessGranted||p.unlocked);const heading=p.access==='subscription'?(plan?plan.name+' Subscription':'Subscription'):p.access==='free'?'Free':money(p.price);const body=open?(p.text||p.content||''):'🔒 Exclusive content — unlock to view.';const media=open&&p.media?.length?`<div style="margin:8px 0">${p.media.map(m=>m.url?(m.type||'').startsWith('video/')?`<video src="${m.url}" controls style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0"></video>`:`<img src="${m.url}" alt="" style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0">`:'').join('')}</div><div class="muted">📎 ${p.media.length} photo/video file(s)</div>`:p.media?.length?`<div style="margin:8px 0;padding:18px;border-radius:12px;background:#ddd;filter:blur(${p.blur||12}px);text-align:center;font-size:28px">📸 🎥</div><div class="muted">🔒 ${p.media.length} locked photo/video file(s)</div>`:'';const action=open?'<span class="pill">✓ Unlocked</span>':p.access==='free'?'<span class="pill">✓ Free</span>':`<button class="btn full" onclick="unlockPost(${JSON.stringify(String(p.id))})">${p.access==='subscription'?'⭐ Subscribe to '+(plan?.name||'this plan'):'Unlock Post'}</button>`;return `<div class="card" style="padding:12px;margin:8px 0"><div class="row"><b>${p.title||'Untitled'}</b><b>${heading}</b></div><p class="muted">${body}</p>${media}${action}</div>`;}).join(''):(fanPostFilter==='subscription'?'No subscription posts available.':fanPostFilter==='paid'?'No paid posts available.':'No posts available.');}
+renderDraftPosts();renderSavedPosts();const postList=document.getElementById('postList');let publishedPosts=(s.posts||[]).filter(p=>p.status!=='draft');if(postList)postList.innerHTML=publishedPosts.length?publishedPosts.slice().reverse().map(p=>`<div style="padding:11px 0;border-bottom:1px solid #eee"><div class="row"><b>${escapeHtml(p.title||'Untitled')}</b><b>${p.access==='subscription'?'⭐ Subscription':money(p.price)}</b></div><div class="muted" style="margin-top:5px">${escapeHtml(p.text||p.content||'')}</div>${p.media?.length?`<div class="muted" style="margin-top:6px">📎 ${p.media.length} media file(s): ${p.media.map(m=>escapeHtml(m.name||'')).join(', ')}</div>`:''}<div style="margin-top:8px"><button class="btn light" onclick="editPost(${escapeHtml(JSON.stringify(String(p.id)))})">EDIT</button> <button class="btn light" onclick="deletePost(${escapeHtml(JSON.stringify(String(p.id)))})">DELETE</button></div></div>`).join(''):'No posts yet.';
+const fanPostList=document.getElementById('fanPostList');if(fanPostList){const visibleFanPosts=s.posts.filter(p=>fanPostFilter==='all'||(fanPostFilter==='subscription'&&p.access==='subscription')||(fanPostFilter==='paid'&&p.access!=='subscription'));fanPostList.innerHTML=visibleFanPosts.length?visibleFanPosts.slice().reverse().map(p=>{const plan=p.access==='subscription'?s.plans.find(q=>String(q.id)===String(p.planId)):null;const open=!!(p.accessGranted||p.unlocked);const heading=p.access==='subscription'?(plan?plan.name+' Subscription':'Subscription'):p.access==='free'?'Free':money(p.price);const body=open?(p.text||p.content||''):'🔒 Exclusive content — unlock to view.';const media=open&&p.media?.length?`<div style="margin:8px 0">${p.media.map(m=>m.url?(m.type||'').startsWith('video/')?`<video src="${m.url}" controls style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0"></video>`:`<img src="${m.url}" alt="" style="max-width:100%;max-height:300px;border-radius:12px;display:block;margin:6px 0">`:'').join('')}</div><div class="muted">📎 ${p.media.length} photo/video file(s)</div>`:p.media?.length?`<div style="margin:8px 0;padding:18px;border-radius:12px;background:#ddd;filter:blur(${p.blur||12}px);text-align:center;font-size:28px">📸 🎥</div><div class="muted">🔒 ${p.media.length} locked photo/video file(s)</div>`:'';const action=open?'<span class="pill">✓ Unlocked</span>':p.access==='free'?'<span class="pill">✓ Free</span>':`<button class="btn full" onclick="unlockPost(${JSON.stringify(String(p.id))})">${p.access==='subscription'?'⭐ Subscribe to '+(plan?.name||'this plan'):'Unlock Post'}</button>`;return `<div class="card" style="padding:12px;margin:8px 0"><div class="row"><b>${escapeHtml(p.title||'Untitled')}</b><b>${escapeHtml(heading)}</b></div><p class="muted">${escapeHtml(body)}</p>${media}${action}</div>`;}).join(''):(fanPostFilter==='subscription'?'No subscription posts available.':fanPostFilter==='paid'?'No paid posts available.':'No posts available.');}
 }
 render();
 
@@ -3615,7 +3669,7 @@ function renderSubscriptionTransactions(){
   ensureSubscriptionArrays();
   const el=document.getElementById('subscriptionTransactionsList');if(!el)return;
   const rows=s.tx.filter(x=>x&&String(x.type||'').startsWith('subscription')).slice().reverse();
-  el.innerHTML=rows.length?rows.map(x=>`<div style="padding:9px 0;border-bottom:1px solid #eee"><div class="row"><b>${x.d||'Subscription'}</b><span>${money(Math.abs(Number(x.a||0)))}</span></div><div class="muted">${x.ts?new Date(x.ts).toLocaleString():''}</div></div>`).join(''):'<div class="muted">No subscription transactions.</div>';
+  el.innerHTML=rows.length?rows.map(x=>`<div style="padding:9px 0;border-bottom:1px solid #eee"><div class="row"><b>${escapeHtml(x.d||'Subscription')}</b><span>${money(Math.abs(Number(x.a||0)))}</span></div><div class="muted">${escapeHtml(x.ts?new Date(x.ts).toLocaleString():'')}</div></div>`).join(''):'<div class="muted">No subscription transactions.</div>';
 }
 function toggleSubscriptionAnalytics(){
   const p=document.getElementById('subscriptionAnalyticsPanel');if(!p)return;
@@ -5130,7 +5184,7 @@ function mergeServerFanLocal(u){
     if(email)setTimeout(()=>email.focus(),50);
   };
   window.CreatorChatProduction242={
-    version:'249.5.38',
+    version:'249.5.46',
     clientAdminPasscodeDisabled:true,
     serverAuthRequired:true,
     verifyAdminSession:async function(){
@@ -5155,7 +5209,7 @@ function mergeServerFanLocal(u){
 (function(){
   if(window.__ccPublicEntry24950)return;window.__ccPublicEntry24950=true;
   let creator=null;
-  function qs(){return new URLSearchParams(location.search).get('creator')||'';}
+  function qs(){const p=new URLSearchParams(location.search);return {slug:p.get('creator')||'',creatorId:p.get('creatorId')||''};}
   function setStatus(t){const e=document.getElementById('publicCreatorAuthStatus');if(e)e.textContent=t||'';}
   function initials(n){return String(n||'CC').trim().split(/\s+/).slice(0,2).map(x=>x[0]||'').join('').toUpperCase()||'CC';}
   function showGate(){document.body.classList.add('public-creator-entry');const g=document.getElementById('publicCreatorEntry');if(g)g.style.setProperty('display','block','important');}
@@ -5171,7 +5225,7 @@ function mergeServerFanLocal(u){
   async function loadCreator(){
     const slug=qs();if(!slug)return;showGate();
     try{
-      const r=await fetch('/api/public/creator?slug='+encodeURIComponent(slug),{credentials:'include'});
+      const r=await fetch('/api/public/creator?slug='+encodeURIComponent(slug)+(creatorId?'&creatorId='+encodeURIComponent(creatorId):''),{credentials:'include'});
       const d=await r.json().catch(()=>({}));
       if(!r.ok||!d.creator){
         const n=document.getElementById('publicCreatorName');if(n)n.textContent='Creator not found';
@@ -5188,6 +5242,16 @@ function mergeServerFanLocal(u){
       const st=document.getElementById('publicCreatorStatus');if(st)st.textContent=creator.status==='active'?'Online profile':'Profile available';
     }catch(e){setStatus('Unable to load this creator profile.');}
   }
+  async function ensurePublicCreatorChat(fanId,creatorId){
+    fanId=String(fanId||'').trim();creatorId=String(creatorId||'').trim();
+    if(!fanId||!creatorId)return '';
+    try{
+      const r=await fetch('/api/chats',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({fanId,creatorId})});
+      const d=await r.json().catch(()=>({}));
+      if(r.ok&&d.chat?.id)return String(d.chat.id);
+    }catch(e){}
+    return '';
+  }
   async function finishFanLogin(data){
     if(!data?.user||String(data.user.role||'').toLowerCase()!=='fan')throw new Error('Fan account could not be signed in.');
     if(typeof CreatorChatAuth!=='undefined')CreatorChatAuth.setSession(data.user,'server');
@@ -5195,8 +5259,12 @@ function mergeServerFanLocal(u){
     s.creatorProfile={name:String(creator?.displayName||creator?.name||''),email:String(creator?.email||''),mobile:'',bio:String(creator?.bio||''),pic:String(creator?.profilePic||creator?.avatarUrl||''),cover:String(creator?.coverUrl||'')};
     const f=(s.fans||[]).find(x=>String(x.id)===String(data.user.id))||{id:String(data.user.id),name:data.user.name||'Fan',messages:[]};
     f.creatorId=String(creator?.id||'');f.chatPrice=Number(creator?.chatPricePaise||0)/100;f.name=data.user.name||f.name;f.userId=data.user.id;
+    const chatId=await ensurePublicCreatorChat(data.user.id,creator?.id);
+    if(chatId)f.chatId=chatId;
     s.activeFanId=f.id;s.fans=[f,...(s.fans||[]).filter(x=>x.id!==f.id)];
-    save();hideGate();nav();show('profile');renderPublicCreatorProfile();
+    save();hideGate();nav();
+    if(typeof syncChatsServer==='function')await syncChatsServer(true).catch(()=>{});
+    show('chat');renderFanChat();
   }
   window.submitPublicFanLogin=async function(){
     const email=document.getElementById('publicFanLoginEmail')?.value.trim().toLowerCase(),password=document.getElementById('publicFanLoginPassword')?.value||'';
@@ -5212,8 +5280,22 @@ function mergeServerFanLocal(u){
   };
   loadCreator();
 })();
-</script><!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
-<script id="creatorchat-release-249-5-38">window.CreatorChatProductionRelease538={version:'249.5.38',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
+</script><!-- CreatorChat STEP 249.5.44: CREATOR FAN LINK SHARE + DIRECT CHAT -->
+<script id="creatorchat-step-249-5-44">(()=>{if(window.__ccStep249544)return;window.__ccStep249544=true;window.CreatorChatFanLink249544={version:'249.5.46',fanOnly:true,serverChatBootstrap:true,shareApi:true};})();</script>
+<!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
+<script id="creatorchat-feature-pack-249-5-42">
+(function(){
+ if(window.__ccFeaturePack542)return;window.__ccFeaturePack542=true;
+ window.__adminFansCache=[];
+ window.filterAdminFans=function(){const q=(document.getElementById('adminFanSearch')?.value||'').trim().toLowerCase(),st=document.getElementById('adminFanStatusFilter')?.value||'';const rows=window.__adminFansCache.filter(f=>(!st||String(f.status)===st)&&(!q||[f.name,f.email,f.mobile].some(v=>String(v||'').toLowerCase().includes(q))));const box=document.getElementById('adminFanList');if(!box)return;box.innerHTML=rows.length?rows.map((f,i)=>`<div class="card" style="margin-top:8px"><div class="row"><div><b>${escapeHtml(f.name||'Fan')}</b><div class="muted">${escapeHtml(f.email||'')} · ${escapeHtml(f.mobile||'')}</div></div><span class="pill">${escapeHtml(f.status||'active')}</span></div><div class="muted" style="margin-top:6px">Balance ₹${(Number(f.balance_paise||0)/100).toFixed(2)} · Chats ${Number(f.chat_count||0)} · Purchases ${Number(f.post_purchase_count||0)} · Subscriptions ${Number(f.active_subscriptions||0)}</div><button class="btn light" style="margin-top:8px" onclick="openFanDetailById('${String(f.id).replace(/'/g,"\\'")}')">View account</button></div>`).join(''):'<div class="muted">No fans match this search.</div>';};
+ window.openFanDetailById=async function(id){const f=window.__adminFansCache.find(x=>String(x.id)===String(id));if(f){const i=(s.fans||[]).findIndex(x=>String(x.id)===String(id));if(i>=0&&typeof renderFanAdminActions==='function'){show('users');await renderFanAdminActions(i);return;}}};
+ window.refreshAdminAudit=async function(){if(!CreatorChatAuth?.requireRole?.('admin'))return;const box=document.getElementById('adminAuditServerList');if(box)box.innerHTML='<div class="muted">Loading…</div>';try{const r=await CreatorChatAuth.api('/api/admin/audit?limit=50');const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to load audit log');const rows=d.logs||[];if(box)box.innerHTML=rows.length?rows.map(x=>`<div class="card" style="margin-top:8px"><div class="row"><b>${escapeHtml(x.action)}</b><small class="muted">${escapeHtml(x.createdAt?new Date(x.createdAt).toLocaleString('en-IN'):'')}</small></div><div class="muted">${escapeHtml(x.target_type||'')} ${escapeHtml(x.target_id||'')} · ${escapeHtml(x.admin_name||x.admin_email||'Admin')}</div></div>`).join(''):'<div class="muted">No audit entries yet.</div>';}catch(e){if(box)box.innerHTML='<div class="muted">Unable to load audit log.</div>';}};
+ window.refreshPaymentReconciliation=async function(){if(!CreatorChatAuth?.requireRole?.('admin'))return;const box=document.getElementById('paymentReconcileList');if(box)box.innerHTML='<div class="muted">Loading…</div>';try{const r=await CreatorChatAuth.api('/api/admin/payments?limit=50');const d=await r.json();if(!r.ok)throw new Error(d.error||'Unable to load payment reconciliation');const z=d.summary||{};for(const [id,val] of [['reconTotal',z.total],['reconPaid',z.paid],['reconMismatch',z.mismatches]]){const e=document.getElementById(id);if(e)e.textContent=String(val||0);}const rows=d.orders||[];if(box)box.innerHTML=rows.length?rows.map(x=>`<div class="card" style="margin-top:8px"><div class="row"><b>₹${Number(x.amountRupees||0).toFixed(2)}</b><span class="pill">${escapeHtml(x.status||'')}</span></div><div class="muted">Order: ${escapeHtml(x.provider_order_id||x.id||'—')}</div><div class="muted">Wallet credit: ₹${(Number(x.creditedPaise||0)/100).toFixed(2)} · ${x.reconciled?'Reconciled':'Needs review'}</div></div>`).join(''):'<div class="muted">No payment orders found.</div>';}catch(e){if(box)box.innerHTML='<div class="muted">Unable to load payment reconciliation.</div>';}};
+ const oldFan=window.syncAdminFansServer;window.syncAdminFansServer=async function(...a){const out=await oldFan?.apply(this,a);try{const r=await CreatorChatAuth.api('/api/admin/fans?limit=100');const d=await r.json();if(r.ok){window.__adminFansCache=d.fans||[];filterAdminFans();}}catch{}return out;};
+ const oldShow=window.show;window.show=function(id){const out=oldShow?.apply(this,arguments);if(id==='adminAudit')setTimeout(refreshAdminAudit,30);if(id==='paymentReconcile')setTimeout(refreshPaymentReconciliation,30);return out;};
+})();
+</script>
+<script id="creatorchat-release-249-5-43">window.CreatorChatProductionRelease543={version:'249.5.46',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
 \n<script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
 <script id="creatorchat-step-249-5-31-final-admin-guard">
 (()=>{
@@ -5254,9 +5336,9 @@ function mergeServerFanLocal(u){
 })();
 </script>
 
-<script id="creatorchat-production-session-guard-249-5-36">
+<script id="creatorchat-production-session-guard-249-5-39">
 (function(){
-  if(window.__ccProductionSessionGuard35)return;window.__ccProductionSessionGuard35=true;
+  if(window.__ccProductionSessionGuard39)return;window.__ccProductionSessionGuard39=true;
   const hosted=location.protocol!=='file:';
   function wipeHostedLocal(){
     if(!hosted)return;
@@ -5291,9 +5373,9 @@ function mergeServerFanLocal(u){
 })();
 </script>
 
-<script id="creatorchat-final-mode-hardening-249-5-36">
+<script id="creatorchat-final-mode-hardening-249-5-40">
 (function(){
-  if(window.__ccFinalModeHardening36)return;window.__ccFinalModeHardening36=true;
+  if(window.__ccFinalModeHardening39)return;window.__ccFinalModeHardening39=true;
   const hosted=location.protocol!=='file:';
   function enforce(){
     if(!hosted)return;
@@ -5312,6 +5394,89 @@ function mergeServerFanLocal(u){
   enforce();setTimeout(enforce,100);setTimeout(enforce,500);setTimeout(enforce,1500);
   window.addEventListener('focus',enforce);
   document.addEventListener('visibilitychange',()=>{if(!document.hidden)enforce();});
+})();
+</script>
+
+<script id="renown-inspired-features-249-5-45">
+(function(){
+const esc=v=>typeof escapeHtml==='function'?escapeHtml(v):String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const featureConfig={live:{list:'liveList',title:'Live'},request:{list:'requestList',title:'Request'},product:{list:'productList',title:'Product'},collaboration:{list:'collabList',title:'Collaboration'},report:{list:'reportList',title:'Report'},refund:{list:'refundList',title:'Refund'}};
+window.ccFeatureLoad=async function(feature){
+ const cfg=featureConfig[feature]; if(!cfg)return; const box=document.getElementById(cfg.list); if(box)box.innerHTML='<div class="muted">Loading…</div>';
+ try{const r=await CreatorChatAuth.api('/api/features?feature='+encodeURIComponent(feature)); const d=await r.json().catch(()=>({})); if(!r.ok)throw Error(d.error||'Unable to load');
+  const items=Array.isArray(d.items)?d.items:[];
+  if(!items.length){if(box)box.innerHTML='<div class="muted">No records yet.</div>';return;}
+  if(box)box.innerHTML=items.map(x=>{const id=esc(x.id), status=esc(x.status||''); const name=esc(x.title||x.name||x.brand_name||x.reason||'Item'); const extra=feature==='product'?('₹'+(Number(x.price_paise||0)/100).toLocaleString('en-IN')):feature==='collaboration'?esc(x.brand_name||''):feature==='refund'?('₹'+(Number(x.amount_paise||0)/100).toLocaleString('en-IN')):feature==='request'?('₹'+(Number(x.amount_paise||0)/100).toLocaleString('en-IN')):''; return '<div class="card" style="margin-top:8px"><div class="row"><b>'+name+'</b><span class="pill">'+status+'</span></div><div class="muted" style="margin-top:5px">'+extra+'</div>'+(feature==='product'&&s.mode!=='admin'&&status==='published'?'<button class="btn full" style="margin-top:8px" onclick="ccFeaturePurchase(\''+id+'\')">Buy / Access</button>':'')+(s.mode==='admin'?'<div class="row" style="margin-top:8px"><select onchange="ccFeatureStatus(\''+feature+'\',\''+id+'\',this.value)"><option value="">Change status…</option>'+({live:['scheduled','live','ended','cancelled'],request:['pending','accepted','in_progress','completed','cancelled','rejected'],product:['draft','published','archived'],collaboration:['open','applied','accepted','in_progress','submitted','completed','cancelled'],report:['open','reviewing','resolved','dismissed'],refund:['pending','approved','rejected','refunded']}[feature]||[]).map(v=>'<option value="'+v+'">'+v+'</option>').join('')+'</select></div>':'' )+'</div>';}).join('');
+ }catch(e){if(box)box.innerHTML='<div class="muted">'+esc(e.message||'Unable to load')+'</div>';}
+};
+window.ccFeatureCreate=async function(feature){
+ const val=id=>document.getElementById(id)?.value?.trim()||''; let b={};
+ if(feature==='live')b={title:val('liveTitle'),description:val('liveDescription'),accessType:val('liveAccess'),price:val('livePrice'),scheduledAt:val('liveScheduled')||null,streamUrl:val('liveUrl')};
+ if(feature==='request')b={creatorId:val('requestCreatorId'),title:val('requestTitle'),details:val('requestDetails'),amount:val('requestAmount'),dueAt:val('requestDue')||null};
+ if(feature==='product')b={creatorId:val('productCreatorId'),title:val('productTitle'),category:val('productCategory'),price:val('productPrice'),description:val('productDescription'),deliveryUrl:val('productDelivery')};
+ if(feature==='collaboration')b={creatorId:val('collabCreatorId'),brandName:val('collabBrand'),title:val('collabTitle'),budget:val('collabBudget'),brief:val('collabBrief'),dueAt:val('collabDue')||null};
+ if(feature==='report')b={targetType:val('reportTargetType'),targetId:val('reportTargetId'),reason:val('reportReason'),details:val('reportDetails')};
+ if(feature==='refund')b={referenceType:val('refundReferenceType'),referenceId:val('refundReferenceId'),amount:val('refundAmount'),reason:val('refundReason')};
+ try{const r=await CreatorChatAuth.api('/api/features?feature='+feature,{method:'POST',body:JSON.stringify(b)});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Request failed');alert('Saved successfully.');ccFeatureLoad(feature);}catch(e){alert(e.message||'Request failed');}
+};
+window.ccFeaturePurchase=async function(productId){try{if(!CreatorChatAuth.requireRole('fan'))return alert('Please sign in as a fan.');if(!confirm('Use your CreatorChat wallet to purchase this product?'))return;const r=await CreatorChatAuth.api('/api/features?feature=product',{method:'POST',body:JSON.stringify({action:'purchase',productId})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Purchase failed');alert(d.alreadyPurchased?'Already purchased.':'Purchase successful.');ccFeatureLoad('product');}catch(e){alert(e.message||'Purchase failed');}};
+window.ccFeatureStatus=async function(feature,itemId,status){if(!status)return;try{const r=await CreatorChatAuth.api('/api/features?feature='+feature,{method:'PATCH',body:JSON.stringify({id:itemId,status})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Update failed');ccFeatureLoad(feature);}catch(e){alert(e.message||'Update failed');}};
+const oldShow=window.show; window.show=function(id){oldShow(id); if(id==='featureLive')ccFeatureLoad('live'); if(id==='featureRequests')ccFeatureLoad('request'); if(id==='featureProducts')ccFeatureLoad('product'); if(id==='featureCollabs')ccFeatureLoad('collaboration'); if(id==='featureModeration')ccFeatureLoad('report'); if(id==='featureRefunds')ccFeatureLoad('refund');};
+})();
+</script>
+
+<script id="creatorchat-step-249-5-45-business-flow-fixes">
+(()=>{
+ if(window.__ccStep249545)return;window.__ccStep249545=true;
+ async function uploadProfileFile(file,creatorId){
+   if(!file||!creatorId)return '';
+   const r=await CreatorChatAuth.api('/api/storage',{method:'POST',body:JSON.stringify({action:'presign-upload',kind:'profile',creatorId,name:file.name,type:file.type,size:file.size})});
+   const d=await r.json().catch(()=>({}));if(!r.ok||!d.uploadUrl||!d.media?.storageKey)throw new Error(d.error||'Profile image upload failed');
+   const up=await fetch(d.uploadUrl,{method:'PUT',headers:{'Content-Type':file.type},body:file});if(!up.ok)throw new Error('Profile image upload failed');
+   return String(d.media.storageKey);
+ }
+ window.saveCreatorProfile=async function(){
+   const name=document.getElementById('creatorName')?.value.trim()||'',email=document.getElementById('creatorEmail')?.value.trim()||'',mobile=document.getElementById('creatorMobile')?.value.trim()||'';
+   const u=window.CreatorChatAuth?.currentUser?.()||s.auth?.user||{};const creatorId=String((String(u.role||'').toLowerCase()==='creator'?u.id:(s.creatorProfile?.id||s.creatorProfile?.userId||s.creatorId||s.activeCreatorId||''))||'');
+   if(!creatorId)return alert('Creator account is not available.');
+   const pic=document.getElementById('creatorProfilePic')?.files?.[0],cover=document.getElementById('creatorCoverPhoto')?.files?.[0];
+   try{
+     let picKey='',coverKey='';
+     if(location.protocol!=='file:'){
+       if(pic)picKey=await uploadProfileFile(pic,creatorId);
+       if(cover)coverKey=await uploadProfileFile(cover,creatorId);
+       const r=await CreatorChatAuth.api('/api/creator/profile',{method:'PATCH',body:JSON.stringify({creatorId,displayName:name,bio:String(s.creatorProfile?.bio||''),chatPricePaise:Math.round(Number(s.rate||29)*100),publicEmail:email,profilePicKey:picKey,coverKey:coverKey})});
+       const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not save creator profile');
+       const pr=d.profile||{};s.creatorProfile={...(s.creatorProfile||{}),id:creatorId,userId:creatorId,name:pr.display_name||name,email:pr.public_email||email,mobile,pic:pr.profile_pic_url||'',cover:pr.cover_url||'',profilePicKey:pr.profile_pic_key||picKey,coverKey:pr.cover_key||coverKey,bio:pr.bio||''};
+     }else{s.creatorProfile={...(s.creatorProfile||{}),id:creatorId,userId:creatorId,name,email,mobile};}
+     save();if(typeof renderCreatorProfileFields==='function')renderCreatorProfileFields();renderCreatorPublicLink();alert('Creator profile saved.');
+   }catch(e){alert(e.message||'Could not save creator profile.');}
+ };
+ // Make the public link deterministic and pass the stable creator id for exact resolution.
+ const oldGet=window.getCreatorPublicLink;window.getCreatorPublicLink=function(){const name=String(s.creatorProfile?.name||'').trim(),id=String(s.creatorProfile?.id||s.creatorProfile?.userId||s.creatorId||s.activeCreatorId||'').trim();return name?location.origin+'/?creator='+encodeURIComponent(creatorPublicSlug(name))+(id?'&creatorId='+encodeURIComponent(id):''):'';};
+ const oldLoad=window.__ccPublicCreatorLoad;
+ // Upgrade public creator entry visuals without exposing private mobile data.
+ const publicEntry=document.getElementById('publicCreatorEntry');
+ if(publicEntry&&!document.getElementById('publicCreatorCover')){
+   const card=publicEntry.querySelector('.public-entry-card');
+   if(card){const cover=document.createElement('div');cover.id='publicCreatorCover';cover.style.cssText='width:100%;height:110px;border-radius:14px;background:#f1f1f5 center/cover no-repeat;margin-bottom:10px;';const email=document.createElement('div');email.id='publicCreatorEmail';email.className='muted';email.style.cssText='text-align:center;margin-top:6px;';email.textContent='';const av=document.getElementById('publicCreatorAvatar');card.insertBefore(cover,av);av?.insertAdjacentElement('afterend',email);}
+ }
+ // Patch public loader by wrapping fetch so the returned creator profile is fully rendered.
+ const originalFetch=window.fetch;
+ window.fetch=async function(input,init){
+   const r=await originalFetch.apply(this,arguments);
+   try{const url=typeof input==='string'?input:(input?.url||'');if(url.includes('/api/public/creator?')){const clone=r.clone();const d=await clone.json();if(d?.creator){const c=d.creator,cover=document.getElementById('publicCreatorCover'),email=document.getElementById('publicCreatorEmail'),a=document.getElementById('publicCreatorAvatar');if(cover)cover.style.backgroundImage=c.coverUrl?'url("'+String(c.coverUrl).replace(/"/g,'')+'")':'none';if(email)email.textContent=c.email||'';if(a&&c.profilePic){a.textContent='';const img=document.createElement('img');img.src=c.profilePic;img.alt='Creator profile';img.style.cssText='width:100%;height:100%;object-fit:cover;border-radius:50%;';a.appendChild(img);}}}}catch{}return r;
+ };
+ // Product access: delivery URL is only shown after a successful purchase.
+ window.ccFeaturePurchaseLive=async function(liveId){try{if(!CreatorChatAuth.requireRole('fan'))return alert('Please sign in as a fan.');const r=await CreatorChatAuth.api('/api/features?feature=live',{method:'POST',body:JSON.stringify({action:'purchase',liveId})});const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Live access failed');if(d.streamUrl)window.open(d.streamUrl,'_blank','noopener,noreferrer');else alert('Access granted. The live stream has not started yet.');}catch(e){alert(e.message||'Live access failed');}};
+ const baseLoad=window.ccFeatureLoad;window.ccFeatureLoad=async function(feature){
+   if(feature!=='live'&&feature!=='product')return baseLoad?.(feature);
+   const box=document.getElementById(feature==='live'?'liveList':'productList');if(box)box.innerHTML='<div class="muted">Loading…</div>';
+   try{const r=await CreatorChatAuth.api('/api/features?feature='+encodeURIComponent(feature));const d=await r.json().catch(()=>({}));if(!r.ok)throw Error(d.error||'Unable to load');const items=Array.isArray(d.items)?d.items:[];
+    if(!items.length){if(box)box.innerHTML='<div class="muted">No records yet.</div>';return;}
+    if(box)box.innerHTML=items.map(x=>{const xid=String(x.id||'').replace(/&/g,'&amp;').replace(/'/g,'&#39;'),name=escapeHtml(x.title||'Item'),status=escapeHtml(x.status||''),price='₹'+(Number(x.price_paise||0)/100).toLocaleString('en-IN');let action='';if(s.mode==='fan'){if(feature==='product'&&status==='published')action='<button class="btn full" style="margin-top:8px" onclick="ccFeaturePurchase(\''+xid+'\')">Buy / Access</button>';if(feature==='live'&&['scheduled','live'].includes(String(x.status||'')))action='<button class="btn full" style="margin-top:8px" onclick="ccFeaturePurchaseLive(\''+xid+'\')">'+(String(x.access_type||'free')==='free'?'Join Live':'Buy / Access')+'</button>';if(feature==='product'&&x.delivery_url)action+='<a class="btn full" style="display:block;text-align:center;margin-top:8px;text-decoration:none" href="'+String(x.delivery_url).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer">Open Delivery</a>';}return '<div class="card" style="margin-top:8px"><div class="row"><b>'+name+'</b><span class="pill">'+status+'</span></div><div class="muted" style="margin-top:5px">'+price+'</div>'+action+'</div>';}).join('');
+   }catch(e){if(box)box.innerHTML='<div class="muted">'+escapeHtml(e.message||'Unable to load')+'</div>';}
+ };
 })();
 </script>
 </body>
