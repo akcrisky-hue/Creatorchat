@@ -1970,7 +1970,23 @@ function sendSupportRequest(){
   const box=document.getElementById('supportMessage');if(box)box.value='';
 }
 
-async function saveAccountSettings(){s.userName=document.getElementById('settingsDisplayName')?.value.trim()||'';s.email=document.getElementById('settingsEmail')?.value.trim()||'';s.mobile=document.getElementById('settingsMobile')?.value.trim()||'';if(!s.userName)return alert('Name is required.');if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await CreatorChatAuth.api('/api/users/me',{method:'PATCH',body:JSON.stringify({name:s.userName,email:s.email,mobile:s.mobile})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');}catch(e){return alert(e.message||'Could not update account.')}}saveNoRender();renderAccountSettings();if(typeof addNotification==='function')addNotification('Account updated','Your account details were saved.','account');const st=document.getElementById('accountSettingsStatus');if(st)st.textContent='Account details saved.';}
+async function saveAccountSettings(){
+  const n=document.getElementById('settingsDisplayName')?.value.trim()||'',e=document.getElementById('settingsEmail')?.value.trim()||'',m=document.getElementById('settingsMobile')?.value.trim()||'';
+  if(!n)return alert('Name is required.');
+  if(e&&!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid email.');
+  if(m&&!/^\d{10}$/.test(m))return alert('Mobile number must be 10 digits.');
+  if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){
+    try{
+      const r=await CreatorChatAuth.api('/api/users/me',{method:'PATCH',body:JSON.stringify({name:n,email:e,mobile:m})});
+      const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');
+      if(d.user){s.userName=d.user.name||n;s.name=d.user.name||n;s.email=d.user.email||e;s.mobile=d.user.mobile||m;
+        const sess=CreatorChatAuth.getSession?.();if(sess?.user){sess.user={...sess.user,name:s.userName,email:s.email,mobile:s.mobile};try{sessionStorage.setItem(CreatorChatAuth.key,JSON.stringify(sess));}catch(_){} }
+        s.auth={...s.auth,user:{...(s.auth.user||{}),name:s.userName,email:s.email,mobile:s.mobile}};
+      }
+    }catch(err){return alert(err.message||'Could not update account.');}
+  }else{s.userName=n;s.name=n;s.email=e;s.mobile=m;saveNoRender();}
+  saveNoRender();renderAccountSettings();if(typeof addNotification==='function')addNotification('Account updated','Your account details were saved.','account');const st=document.getElementById('accountSettingsStatus');if(st)st.textContent='Account details saved.';
+}
 function logoutCurrentUser(){
   if(!confirm('Log out of this account?'))return;
   try{localStorage.removeItem('creatorchat_current_user');}catch(e){}
@@ -5160,14 +5176,23 @@ function mergeServerFanLocal(u){
       if(String(data.user.role||'').toLowerCase()!=='admin'){if(msg)msg.textContent='This account does not have admin access.';return;}
       CreatorChatAuth.setSession(data.user,'server');sessionStorage.setItem('creatorchat_admin_unlocked','1');s.mode='admin';save();
       const p=document.getElementById('adminLoginPanel');if(p)p.style.setProperty('display','none','important');
-      if(typeof nav==='function')nav();if(typeof show==='function')show('admin');
+      if(typeof nav==='function')nav();if(typeof show==='function')show('admin');if(typeof loadAdminCreatorProfileServer==='function')loadAdminCreatorProfileServer();
     }catch(e){if(msg)msg.textContent='Unable to reach the authentication service. Check the network/deployment and try again.';}
   };
   window.adminLogout=function(){
     try{CreatorChatAuth.api('/api/auth/logout',{method:'POST'}).catch(()=>{});}catch(e){}
     CreatorChatAuth.signOut();s.mode='fan';save();
   };
-  ensureAuthState();restoreAuthSession();
+  async function loadAdminCreatorProfileServer(){
+  if(location.protocol==='file:'||!CreatorChatAuth?.requireRole?.('admin'))return;
+  try{
+    const r=await CreatorChatAuth.api('/api/creator/profile',{method:'GET'});const d=await r.json().catch(()=>({}));if(!r.ok||!d.profile)return;
+    const p=d.profile; s.creatorProfile={...(s.creatorProfile||{}),id:p.user_id,userId:p.user_id,name:p.display_name||p.name||'',email:p.public_email||p.email||'',mobile:p.mobile||'',pic:p.profile_pic_url||'',cover:p.cover_url||'',profilePicKey:p.profile_pic_key||'',coverKey:p.cover_key||'',bio:p.bio||''};
+    s.creatorId=String(p.user_id||'');s.activeCreatorId=String(p.user_id||'');saveNoRender();if(typeof renderCreatorProfileFields==='function')renderCreatorProfileFields();if(typeof renderCreatorPublicLink==='function')renderCreatorPublicLink();
+  }catch(e){}
+}
+ensureAuthState();restoreAuthSession();
+setTimeout(loadAdminCreatorProfileServer,250);
 })();
 </script>
 
@@ -5186,7 +5211,7 @@ function mergeServerFanLocal(u){
     if(email)setTimeout(()=>email.focus(),50);
   };
   window.CreatorChatProduction242={
-    version:'249.5.49',
+    version:'249.5.52',
     clientAdminPasscodeDisabled:true,
     serverAuthRequired:true,
     verifyAdminSession:async function(){
@@ -5313,7 +5338,7 @@ function mergeServerFanLocal(u){
   loadCreator();
 })();
 </script><!-- CreatorChat STEP 249.5.44: CREATOR FAN LINK SHARE + DIRECT CHAT -->
-<script id="creatorchat-step-249-5-44">(()=>{if(window.__ccStep249544)return;window.__ccStep249544=true;window.CreatorChatFanLink249544={version:'249.5.49',fanOnly:true,serverChatBootstrap:true,shareApi:true};})();</script>
+<script id="creatorchat-step-249-5-44">(()=>{if(window.__ccStep249544)return;window.__ccStep249544=true;window.CreatorChatFanLink249544={version:'249.5.52',fanOnly:true,serverChatBootstrap:true,shareApi:true};})();</script>
 <!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
 <script id="creatorchat-feature-pack-249-5-42">
 (function(){
@@ -5327,7 +5352,7 @@ function mergeServerFanLocal(u){
  const oldShow=window.show;window.show=function(id){const out=oldShow?.apply(this,arguments);if(id==='adminAudit')setTimeout(refreshAdminAudit,30);if(id==='paymentReconcile')setTimeout(refreshPaymentReconciliation,30);return out;};
 })();
 </script>
-<script id="creatorchat-release-249-5-43">window.CreatorChatProductionRelease543={version:'249.5.49',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
+<script id="creatorchat-release-249-5-43">window.CreatorChatProductionRelease543={version:'249.5.52',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
 
 <script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
 <script id="creatorchat-step-249-5-31-final-admin-guard">
@@ -5512,32 +5537,63 @@ const oldShow=window.show; window.show=function(id){oldShow(id); if(id==='featur
  };
 })();
 </script>
-<script id="creatorchat-step-249-5-48-admin-root-entry">
+<style id="creatorchat-admin-root-gate-style">
+body.cc-admin-root-gate{overflow:hidden!important;background:#111!important}
+body.cc-admin-root-gate > *:not(#adminLoginPanel){display:none!important}
+body.cc-admin-root-gate #adminLoginPanel{
+ display:flex!important;position:fixed!important;inset:0!important;left:0!important;top:0!important;
+ width:100vw!important;height:100vh!important;min-width:100vw!important;min-height:100vh!important;
+ margin:0!important;padding:18px!important;box-sizing:border-box!important;
+ align-items:center!important;justify-content:center!important;z-index:2147483647!important;
+ background:#111!important;opacity:1!important;visibility:visible!important;
+}
+body.cc-admin-root-gate #adminLoginPanel .modal-card{margin:0 auto!important;opacity:1!important;visibility:visible!important}
+</style>
+<script id="creatorchat-step-249-5-51-admin-root-entry">
 (function(){
-  if(window.__ccStep249548)return; window.__ccStep249548=true;
-  // FINAL ENTRY RULE: hosted root URL is always the private Admin entry.
-  // A creator public link is identified only by ?creator=... and remains Fan-only.
-  function forceAdminRoot(){
-    try{
-      if(location.protocol==='file:')return;
-      const p=new URLSearchParams(location.search);
-      if(p.get('creator') || p.get('creatorId'))return;
-      s.mode='admin';
-      document.body.classList.remove('public-creator-entry');
-      const gate=document.getElementById('publicCreatorEntry');
-      if(gate)gate.style.setProperty('display','none','important');
-      if(typeof window.unlockAdminMode==='function'){
-        window.unlockAdminMode();
-      }else{
-        const panel=document.getElementById('adminLoginPanel');
-        if(panel)panel.style.setProperty('display','block','important');
-      }
-      document.body.setAttribute('data-mode','admin');
-    }catch(e){}
-  }
-  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',forceAdminRoot,{once:true});
-  else forceAdminRoot();
-  setTimeout(forceAdminRoot,250);
+ if(window.__ccStep249550)return;window.__ccStep249550=true;
+ const params=new URLSearchParams(location.search);
+ const isHostedRoot=location.protocol!=='file:'&&!params.get('creator')&&!params.get('creatorId');
+ function enterRootGate(){
+  if(!isHostedRoot)return;
+  try{
+   document.body.classList.add('cc-admin-root-gate');
+   s.mode='admin';document.body.setAttribute('data-mode','admin');
+   const panel=document.getElementById('adminLoginPanel');
+   if(panel)panel.style.setProperty('display','flex','important');
+   const gate=document.getElementById('publicCreatorEntry');
+   if(gate)gate.style.setProperty('display','none','important');
+   const session=window.CreatorChatAuth?.getSession?.();
+   const role=String(window.CreatorChatAuth?.currentUser?.()?.role||'').toLowerCase();
+   if(session?.serverVerified&&role==='admin'){
+    document.body.classList.remove('cc-admin-root-gate');
+    panel?.style.setProperty('display','none','important');
+    if(typeof nav==='function')nav();if(typeof show==='function')show('admin');
+   }
+  }catch(e){}
+ }
+ window.ccAdminRootExitGate=function(){
+  try{document.body.classList.remove('cc-admin-root-gate');s.mode='admin';document.body.setAttribute('data-mode','admin');}catch(e){}
+  const panel=document.getElementById('adminLoginPanel');if(panel)panel.style.setProperty('display','none','important');
+  try{if(typeof nav==='function')nav();if(typeof show==='function')show('admin');}catch(e){}
+ };
+ if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',enterRootGate,{once:true});else enterRootGate();
+ setTimeout(enterRootGate,100);setTimeout(enterRootGate,500);
+})();
+</script>
+<script id="creatorchat-step-249-5-51-admin-login-exit-gate">
+(function(){
+ if(window.__ccStep249550Login)return;window.__ccStep249550Login=true;
+ const base=window.adminLogin;if(typeof base!=='function')return;
+ window.adminLogin=async function(){
+  await base.apply(this,arguments);
+  try{
+   const params=new URLSearchParams(location.search);
+   const role=String(window.CreatorChatAuth?.currentUser?.()?.role||s.auth?.user?.role||'').toLowerCase();
+   const verified=!!window.CreatorChatAuth?.getSession?.()?.serverVerified;
+   if(!params.get('creator')&&!params.get('creatorId')&&role==='admin'&&verified)window.ccAdminRootExitGate?.();
+  }catch(e){}
+ };
 })();
 </script>
 </body>
