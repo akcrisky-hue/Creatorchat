@@ -19,3 +19,7 @@ This package consolidates the remaining production-backend work so individual de
 5. Deploy the complete project once, after final review.
 
 No GitHub/Vercel deployment is performed by this package.
+
+
+## Current release note
+- 249.5.37: fixed hardcoded creator-name fallback in Fan UI and made Fan logout invalidate the server session.

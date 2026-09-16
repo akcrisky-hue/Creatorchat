@@ -792,7 +792,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
   <div class="card profile">
     <div class="avatar">KA</div>
     <div style="flex:1;min-width:0">
-      <b>Kaira</b>
+      <b>Creator</b>
       <div class="muted">@kaira_creator · <span id="fanOnlineHome">Online</span></div>
       <span class="pill">Exclusive</span>
     </div>
@@ -946,7 +946,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
   <div style="display:flex;align-items:center;gap:12px;margin-top:-30px;padding:0 12px">
     <div id="fanCreatorPic" style="width:76px;height:76px;border-radius:50%;background:#7c5ce6;color:#fff;display:grid;place-items:center;font-weight:800;font-size:22px;border:4px solid #fff;overflow:hidden">KA</div>
     <div style="padding-top:28px;min-width:0">
-      <h2 id="fanCreatorName" style="margin:0">Kaira</h2>
+      <h2 id="fanCreatorName" style="margin:0">Creator</h2>
       <div class="muted">Creator</div>
     </div>
   </div>
@@ -1005,7 +1005,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
     <strong id="fanChatBalance">₹0</strong>
   </div>
 </div>
-<div class="card"><div class="profile"><div class="avatar">KA</div><div><b>Kaira</b><div class="muted"><span id="fanOnlineChat">Online</span></div></div></div></div>
+<div class="card"><div class="profile"><div class="avatar">KA</div><div><b>Creator</b><div class="muted"><span id="fanOnlineChat">Online</span></div></div></div></div>
 <div class="card">
   <div class="chat" id="chatbox"><div class="bubble">Hey 👋 Send me a message.</div></div>
   <div class="row" style="margin-top:10px;margin-bottom:8px">
@@ -1600,7 +1600,9 @@ function nav(){
   refreshInsights();
 }
 function buildMenu(){
-  let a=s.mode==='admin';
+  const a=s.mode==='admin';
+  const verified=!!window.CreatorChatAuth?.getSession?.()?.serverVerified;
+  const signedIn=!!window.CreatorChatAuth?.isSignedIn?.();
   let items=a
     ? [
       ['📋','Pending Orders','Manage pending purchases','orders'],
@@ -1615,7 +1617,11 @@ function buildMenu(){
       ['🛟','Support','Help & fan support','support'],
       ['👤','Fan View','Open fan side','home']
     ]
-    : [['⚙️','Settings','Name, email & mobile','fanSettings'],['🔐','Admin Login','Administrator sign in','adminLogin'],['🚪','Logout','Sign out','logout']];
+    : [
+      ['⚙️','Settings','Name, email & mobile','fanSettings'],
+      ['🔐','Admin Login','Administrator sign in','adminLogin'],
+      ...(verified&&signedIn ? [['🚪','Logout','Sign out','logout']] : [])
+    ];
   document.getElementById('menuModeText').textContent=a?'Admin controls':'Fan menu';
   document.getElementById('menuItems').innerHTML=items.map(x=>`<button class="menu-item" onclick="menuGo(${escapeHtml(JSON.stringify(String(x[3])) )})"><span class="mi">${escapeHtml(x[0])}</span><span><b>${escapeHtml(x[1])}</b><span>${escapeHtml(x[2])}</span></span></button>`).join('');
   let e=s.supportEmail||'Support email not set';
@@ -1628,7 +1634,15 @@ function menuGo(id){
   document.getElementById('menuBackdrop').classList.remove('open');
 
   if(id==='logout'){
-    if(confirm('Do you want to log out?')){s.fanAccount={...s.fanAccount,loggedIn:false};save();alert('Logged out.');}
+    if(!confirm('Do you want to log out?'))return;
+    (async()=>{
+      try{await fetch('/api/auth/logout',{method:'POST',credentials:'include'});}catch(e){}
+      try{CreatorChatAuth.signOut();}catch(e){}
+      s.mode='fan';s.fanAccount={name:'',contact:'',email:'',mobile:'',loggedIn:false};
+      s.fans=[];s.posts=[];s.plans=[];s.subscriptions=[];s.tx=[];s.orders=0;s.earn=0;s.balance=0;s.chatAccess={};
+      s.notifications=[];s.auditLog=[];s.giftCatalog=[];s.creatorProfile=null;s.activeFanId='';s.activeCreatorId='';
+      save();location.reload();
+    })();
     return;
   }
 
@@ -1752,7 +1766,7 @@ function saveCreatorProfile(){
 
 function renderPublicCreatorProfile(){
   let p=s.creatorProfile||{};
-  let name=p.name||'Kaira';
+  let name=String(p.name||'').trim()||'Creator';
   let n=document.getElementById('fanCreatorName'); if(n)n.textContent=name;
   let e=document.getElementById('fanCreatorEmail'); if(e)e.textContent=p.email||'Email not set';
   let pic=document.getElementById('fanCreatorPic');
@@ -1765,8 +1779,8 @@ function creatorPublicSlug(name){
   return String(name||'creator').toLowerCase().trim().replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,70)||'creator';
 }
 function getCreatorPublicLink(){
-  const name=(s.creatorProfile&&s.creatorProfile.name)||'Kaira';
-  return location.origin+'/?creator='+encodeURIComponent(creatorPublicSlug(name));
+  const name=String(s.creatorProfile?.name||'').trim();
+  return name ? location.origin+'/?creator='+encodeURIComponent(creatorPublicSlug(name)) : '';
 }
 function renderCreatorPublicLink(){
   const el=document.getElementById('creatorPublicLink');
@@ -2184,7 +2198,7 @@ function sendAdminText(){
   if(!f.messages)f.messages=[];
   f.messages.push({from:'admin',text,ts:Date.now(),fanRead:false});
   if(!Array.isArray(s.notifications))s.notifications=[];
-  s.notifications.unshift({id:'n'+Date.now(),icon:'💬',title:'New creator message',text:'Kaira sent you a new chat message.',ts:Date.now(),read:false,category:'creator'});
+  s.notifications.unshift({id:'n'+Date.now(),icon:'💬',title:'New creator message',text:'Your creator sent you a new chat message.',ts:Date.now(),read:false,category:'creator'});
   el.value='';save();renderAdminChat();
 }
 function adminAttach(label){
@@ -5116,7 +5130,7 @@ function mergeServerFanLocal(u){
     if(email)setTimeout(()=>email.focus(),50);
   };
   window.CreatorChatProduction242={
-    version:'249.5.35',
+    version:'249.5.38',
     clientAdminPasscodeDisabled:true,
     serverAuthRequired:true,
     verifyAdminSession:async function(){
@@ -5178,6 +5192,7 @@ function mergeServerFanLocal(u){
     if(!data?.user||String(data.user.role||'').toLowerCase()!=='fan')throw new Error('Fan account could not be signed in.');
     if(typeof CreatorChatAuth!=='undefined')CreatorChatAuth.setSession(data.user,'server');
     s.mode='fan';s.activeCreatorId=String(creator?.id||'');
+    s.creatorProfile={name:String(creator?.displayName||creator?.name||''),email:String(creator?.email||''),mobile:'',bio:String(creator?.bio||''),pic:String(creator?.profilePic||creator?.avatarUrl||''),cover:String(creator?.coverUrl||'')};
     const f=(s.fans||[]).find(x=>String(x.id)===String(data.user.id))||{id:String(data.user.id),name:data.user.name||'Fan',messages:[]};
     f.creatorId=String(creator?.id||'');f.chatPrice=Number(creator?.chatPricePaise||0)/100;f.name=data.user.name||f.name;f.userId=data.user.id;
     s.activeFanId=f.id;s.fans=[f,...(s.fans||[]).filter(x=>x.id!==f.id)];
@@ -5198,7 +5213,7 @@ function mergeServerFanLocal(u){
   loadCreator();
 })();
 </script><!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
-<script id="creatorchat-release-249-5-36">window.CreatorChatProductionRelease536={version:'249.5.36',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
+<script id="creatorchat-release-249-5-38">window.CreatorChatProductionRelease538={version:'249.5.38',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
 \n<script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
 <script id="creatorchat-step-249-5-31-final-admin-guard">
 (()=>{

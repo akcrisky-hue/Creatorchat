@@ -28,3 +28,7 @@ The production text-message send path is connected to `/api/chats` + `/api/messa
 
 ## Live-test limitation
 No live PostgreSQL, Razorpay, Vercel, or browser automation test was available in this environment. Therefore this audit does not claim live integration PASS.
+
+
+## Current release note
+- 249.5.37: fixed hardcoded creator-name fallback in Fan UI and made Fan logout invalidate the server session.
