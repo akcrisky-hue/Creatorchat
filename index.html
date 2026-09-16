@@ -5186,7 +5186,7 @@ function mergeServerFanLocal(u){
     if(email)setTimeout(()=>email.focus(),50);
   };
   window.CreatorChatProduction242={
-    version:'249.5.47',
+    version:'249.5.49',
     clientAdminPasscodeDisabled:true,
     serverAuthRequired:true,
     verifyAdminSession:async function(){
@@ -5255,9 +5255,9 @@ function mergeServerFanLocal(u){
     setStatus('');
   };
   async function loadCreator(){
-    const slug=qs();if(!slug)return;showGate();
+    const q=qs();const slug=q.slug;const creatorId=q.creatorId;if(!slug && !creatorId)return;showGate();
     try{
-      const r=await fetch('/api/public/creator?slug='+encodeURIComponent(slug)+(creatorId?'&creatorId='+encodeURIComponent(creatorId):''),{credentials:'include'});
+      const r=await fetch('/api/public/creator?'+(slug?'slug='+encodeURIComponent(slug):'')+(slug&&creatorId?'&':'')+(creatorId?'creatorId='+encodeURIComponent(creatorId):''),{credentials:'include'});
       const d=await r.json().catch(()=>({}));
       if(!r.ok||!d.creator){
         const n=document.getElementById('publicCreatorName');if(n)n.textContent='Creator not found';
@@ -5313,7 +5313,7 @@ function mergeServerFanLocal(u){
   loadCreator();
 })();
 </script><!-- CreatorChat STEP 249.5.44: CREATOR FAN LINK SHARE + DIRECT CHAT -->
-<script id="creatorchat-step-249-5-44">(()=>{if(window.__ccStep249544)return;window.__ccStep249544=true;window.CreatorChatFanLink249544={version:'249.5.47',fanOnly:true,serverChatBootstrap:true,shareApi:true};})();</script>
+<script id="creatorchat-step-249-5-44">(()=>{if(window.__ccStep249544)return;window.__ccStep249544=true;window.CreatorChatFanLink249544={version:'249.5.49',fanOnly:true,serverChatBootstrap:true,shareApi:true};})();</script>
 <!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
 <script id="creatorchat-feature-pack-249-5-42">
 (function(){
@@ -5327,7 +5327,7 @@ function mergeServerFanLocal(u){
  const oldShow=window.show;window.show=function(id){const out=oldShow?.apply(this,arguments);if(id==='adminAudit')setTimeout(refreshAdminAudit,30);if(id==='paymentReconcile')setTimeout(refreshPaymentReconciliation,30);return out;};
 })();
 </script>
-<script id="creatorchat-release-249-5-43">window.CreatorChatProductionRelease543={version:'249.5.47',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
+<script id="creatorchat-release-249-5-43">window.CreatorChatProductionRelease543={version:'249.5.49',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
 
 <script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
 <script id="creatorchat-step-249-5-31-final-admin-guard">
@@ -5512,19 +5512,32 @@ const oldShow=window.show; window.show=function(id){oldShow(id); if(id==='featur
  };
 })();
 </script>
-<script id="creatorchat-step-249-5-47-admin-entry">
+<script id="creatorchat-step-249-5-48-admin-root-entry">
 (function(){
-  if(window.__ccStep249547)return; window.__ccStep249547=true;
-  // Vercel deployment root is the private admin entry; creator links remain fan-facing.
-  try{
-    const p=new URLSearchParams(location.search);
-    const adminEntry=location.protocol!=='file:' && location.hostname.endsWith('.vercel.app') && !p.get('creator');
-    if(adminEntry){
+  if(window.__ccStep249548)return; window.__ccStep249548=true;
+  // FINAL ENTRY RULE: hosted root URL is always the private Admin entry.
+  // A creator public link is identified only by ?creator=... and remains Fan-only.
+  function forceAdminRoot(){
+    try{
+      if(location.protocol==='file:')return;
+      const p=new URLSearchParams(location.search);
+      if(p.get('creator') || p.get('creatorId'))return;
       s.mode='admin';
-      const open=()=>{ if(typeof window.unlockAdminMode==='function') window.unlockAdminMode(); };
-      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',open,{once:true}); else setTimeout(open,0);
-    }
-  }catch(e){}
+      document.body.classList.remove('public-creator-entry');
+      const gate=document.getElementById('publicCreatorEntry');
+      if(gate)gate.style.setProperty('display','none','important');
+      if(typeof window.unlockAdminMode==='function'){
+        window.unlockAdminMode();
+      }else{
+        const panel=document.getElementById('adminLoginPanel');
+        if(panel)panel.style.setProperty('display','block','important');
+      }
+      document.body.setAttribute('data-mode','admin');
+    }catch(e){}
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',forceAdminRoot,{once:true});
+  else forceAdminRoot();
+  setTimeout(forceAdminRoot,250);
 })();
 </script>
 </body>
