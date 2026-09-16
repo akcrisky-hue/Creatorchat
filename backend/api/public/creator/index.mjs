@@ -9,7 +9,7 @@ export default async function handler(req,res){
     if(!slug||slug.length>100)return json(res,400,{error:'slug is required'},rid);
     const r=await db().query(`SELECT u.id,u.name,u.status,p.display_name,p.bio,p.chat_price_paise
       FROM users u LEFT JOIN creator_profiles p ON p.user_id=u.id
-      WHERE u.role='creator' AND u.status IN ('active','suspended')
+      WHERE u.role='creator' AND u.status='active'
       AND lower(regexp_replace(regexp_replace(coalesce(nullif(p.display_name,''),u.name),'[^a-zA-Z0-9]+','-','g'),'^-+|-+$','','g'))=$1
       ORDER BY p.updated_at DESC NULLS LAST,u.created_at ASC LIMIT 1`,[slugify(slug)]);
     if(!r.rowCount)return json(res,404,{error:'Creator not found'},rid);

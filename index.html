@@ -1176,8 +1176,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
 <div class="card">
     <h2>📜 Terms of Service</h2>
     <p class="muted" style="line-height:1.7">
-      CreatorChat demo terms page. Add your platform's actual terms, refund rules,
-      subscription rules, and content policy here.
+      These Terms of Service are a placeholder until the platform owner publishes the final legal terms, refund rules, subscription rules, privacy policy, and content policy. Do not treat this page as legal advice.
     </p>
   </div>
 </section>
@@ -1187,7 +1186,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
 <h2>⚙️ Admin Settings</h2>
 <p class="muted">Manage the site's important controls here.</p>
 <label class="muted" style="display:block;margin-top:10px">Support Email</label>
-<input id="supportEmail" type="email" placeholder="support@example.com">
+<input id="supportEmail" type="email" placeholder="Enter your real support email">
 <button class="btn full" onclick="saveSupportEmail()">Save Support Email</button>
 <div class="support-card">
 <b>💬 Fan Support</b>
@@ -1274,7 +1273,7 @@ body.public-creator-entry>.app,body.public-creator-entry>#notificationBell,body.
     <div id="adminSupportSettings" style="display:none!important;margin-top:14px;padding-top:12px;border-top:1px solid #eee">
       <b>Admin Support Settings</b>
       <label style="display:block;margin-top:8px">Support email
-        <input id="adminSupportEmail" type="email" placeholder="support@example.com" style="width:100%;box-sizing:border-box;margin-top:6px">
+        <input id="adminSupportEmail" type="email" placeholder="Enter your real support email" style="width:100%;box-sizing:border-box;margin-top:6px">
       </label>
       <button type="button" class="btn full" style="margin-top:8px" onclick="saveSupportEmail()">Save Support Email</button>
     </div>
@@ -1513,10 +1512,11 @@ const defaultPlans=[
 ];
 const gifts=[['❤️','Heart',99],['🌹','Rose',199],['💕','Love',399],['💐','Flowers',599],['💎','Diamond',999],['🧸','Teddy',1499],['💖','Big Heart',2499],['🎁','Love Box',4999],['💝','Premium',7999],['💋','Kiss',9999],['👑','Royal',14999],['💎','Ultimate',19999]];
 let s=JSON.parse(localStorage.getItem('cc6')||'null')||{mode:'fan',balance:0,rate:29,free:false,member:'None',earn:0,orders:0,tx:[],posts:[],plans:[],planVersion:2,supportEmail:''};
+const hostedApp=location.protocol!=='file:'; if(hostedApp)s.mode='fan';
 if(typeof s.supportEmail!=='string')s.supportEmail='';
 if(!Array.isArray(s.notifications))s.notifications=[];
 if(!s.notificationPrefs)s.notificationPrefs={creator:true,posts:true,gifts:true,system:true};
-if(!s.creatorProfile)s.creatorProfile={name:'Kaira',email:'',mobile:'',pic:'',cover:''};
+if(!s.creatorProfile)s.creatorProfile={name:'',email:'',mobile:'',pic:'',cover:''};
 if(!Array.isArray(s.fans))s.fans=[];
 if(!s.chatAccess)s.chatAccess={};
 if(typeof s.payoutValue!=='string')s.payoutValue='';
@@ -1538,7 +1538,7 @@ if(!Array.isArray(s.giftCatalog)||s.giftCatalog.length<12)s.giftCatalog=[
       ['💝','Premium',7999],['💋','Kiss',9999],['👑','Royal',14999],['💎','Ultimate',19999]
     ].map((g,i)=>({id:i+1,emoji:g[0],name:g[1],price:g[2],active:true}));
 if(typeof s.creatorOnline!=='boolean')s.creatorOnline=true;
-if(!s.fanAccount)s.fanAccount={name:'',contact:'',email:'',mobile:'',loggedIn:true};
+if(!s.fanAccount)s.fanAccount={name:'',contact:'',email:'',mobile:'',loggedIn:false};
 if(!s.auth||typeof s.auth!=='object')s.auth={version:1,provider:'pending',status:'signed_out',user:null,updatedAt:new Date().toISOString()};
 if(typeof s.fanAccount.email!=='string')s.fanAccount.email='';
 if(typeof s.fanAccount.mobile!=='string')s.fanAccount.mobile='';
@@ -1556,7 +1556,7 @@ function saveFanAccount(){let n=document.getElementById('fanName').value.trim(),
 async function saveFanSettings(){let n=document.getElementById('fanSettingName').value.trim(),e=document.getElementById('fanSettingEmail').value.trim(),m=document.getElementById('fanSettingMobile').value.trim();if(!n)return alert('Name is required.');if(e&&!/^\S+@\S+\.\S+$/.test(e))return alert('Enter a valid email address.');if(m&&!/^\d{10}$/.test(m))return alert('Mobile number must be 10 digits.');if(s.auth?.status==='signed_in'&&s.auth?.user?.id&&location.protocol!=='file:'){try{const r=await fetch('/api/users/me',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:n,email:e,mobile:m})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');mergeServerFanLocal(d.user);}catch(err){return alert('Could not update account on server.');}}else{s.fanAccount={...s.fanAccount,name:n,email:e,mobile:m,contact:e||m,loggedIn:true};save();}alert('Fan settings updated.');}
 function rechargeBonus(a){if(a>3000)return Math.floor(a*0.10);if(a===3000)return 300;if(a>=2000)return 150;if(a>=1500)return 100;if(a>=1000)return 50;return 0}
 function updateRechargeBonus(){let el=document.getElementById('rechargeBonus');if(!el)return;let a=Number(document.getElementById('rechargeAmount').value)||0;if(a<500){el.textContent='Minimum ₹500 · Maximum ₹10,000';return}if(a>10000){el.textContent='Maximum recharge ₹10,000';return}let b=rechargeBonus(a);el.textContent=`You pay ₹${a} + ₹${b} bonus = ₹${a+b} wallet credit`}
-function demoRecharge(){return startWalletRechargeFromInput('rechargeAmount');}
+function startRecharge(){if(location.protocol!=='file:'&&!window.CreatorChatAuth?.isSignedIn?.())return alert('Please sign in as a fan to recharge your wallet.');return startWalletRechargeFromInput('rechargeAmount');}
 function toggleCreatorStatus(){s.creatorOnline=!s.creatorOnline;save();}
 function isAdminAuthenticated(){
   return sessionStorage.getItem('creatorchat_admin_unlocked')==='1';
@@ -1615,7 +1615,7 @@ function buildMenu(){
       ['🛟','Support','Help & fan support','support'],
       ['👤','Fan View','Open fan side','home']
     ]
-    : [['⚙️','Settings','Name, email & mobile','fanSettings'],['🔐','Admin Login','Administrator sign in','adminLogin'],['🚪','Logout','Sign out of this demo','logout']];
+    : [['⚙️','Settings','Name, email & mobile','fanSettings'],['🔐','Admin Login','Administrator sign in','adminLogin'],['🚪','Logout','Sign out','logout']];
   document.getElementById('menuModeText').textContent=a?'Admin controls':'Fan menu';
   document.getElementById('menuItems').innerHTML=items.map(x=>`<button class="menu-item" onclick="menuGo(${escapeHtml(JSON.stringify(String(x[3])) )})"><span class="mi">${escapeHtml(x[0])}</span><span><b>${escapeHtml(x[1])}</b><span>${escapeHtml(x[2])}</span></span></button>`).join('');
   let e=s.supportEmail||'Support email not set';
@@ -1635,7 +1635,7 @@ function menuGo(id){
   if(id==='support'){openSupport();return;}
 
   // View switching must also change the actual app mode.
-  // This fixes "Admin View" opening the page but leaving Fan navigation active.
+  // Admin login opens the protected administrator area.
   if(id==='adminLogin'){if(typeof unlockAdminMode==='function')unlockAdminMode();return;}
   if(id==='home'){setMode('fan');return;}
 
@@ -1721,7 +1721,7 @@ function toggleFanNotifications(){
   if(a)a.textContent=open?'⌄':'⌃';
   
 }
-async function sendNotification(){let t=document.getElementById('notificationTitle')?.value.trim(),m=document.getElementById('notificationText')?.value.trim();if(!t||!m)return alert('Enter both a title and a message.');if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await CreatorChatAuth.api('/api/notifications',{method:'POST',body:JSON.stringify({action:'send',title:t,text:m,creatorId:getCurrentCreatorId()})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not send notification');document.getElementById('notificationTitle').value='';document.getElementById('notificationText').value='';alert(`Notification sent to ${Number(d.sent||0)} fan${Number(d.sent||0)===1?'':'s'}.`);return;}catch(e){return alert(e.message||'Could not send notification.');}}ensureNotifications();s.notifications.unshift({id:'n'+Date.now(),icon:'🔔',category:'system',title:t,text:m,ts:Date.now(),read:false});s.notifications=s.notifications.slice(0,50);document.getElementById('notificationTitle').value='';document.getElementById('notificationText').value='';save();alert('Notification sent to fans.');}
+async function sendNotification(){let t=document.getElementById('notificationTitle')?.value.trim(),m=document.getElementById('notificationText')?.value.trim();if(!t||!m)return alert('Enter both a title and a message.');if(location.protocol!=='file:'){if(!CreatorChatAuth?.requireRole?.('admin'))return alert('Admin access required.');try{const r=await CreatorChatAuth.api('/api/notifications',{method:'POST',body:JSON.stringify({action:'send',title:t,text:m,creatorId:getCurrentCreatorId()})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not send notification');document.getElementById('notificationTitle').value='';document.getElementById('notificationText').value='';alert(`Notification sent to ${Number(d.sent||0)} fan${Number(d.sent||0)===1?'':'s'}.`);return;}catch(e){return alert(e.message||'Could not send notification.');}}ensureNotifications();s.notifications.unshift({id:'n'+Date.now(),icon:'🔔',category:'system',title:t,text:m,ts:Date.now(),read:false});s.notifications=s.notifications.slice(0,50);document.getElementById('notificationTitle').value='';document.getElementById('notificationText').value='';save();alert('Notification sent to fans.');}
 
 function previewCreatorImage(input,targetId){
   let file=input.files&&input.files[0]; if(!file)return;
@@ -2039,17 +2039,16 @@ async function sendFanMessage(){
   let chatId=String(f.chatId||f.chatID||'');
   const creatorId=String(f.creatorId||f.userId||f.id||'');
   const msgId='msg_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,8);
-  // Demo accounts intentionally have no server-side user id/session.
-  // Decide this BEFORE creating a chat so the hosted demo never sends
+  // Hosted accounts require a server-side user id/session.
+  // Decide this BEFORE creating a chat so the hosted app never sends
   // fake/empty fan IDs to the production API. Real authenticated fans
   // continue through the server-authoritative billing path.
   const serverFanId = String(s.fanAccount?.id||s.auth?.user?.id||s.userId||'').trim();
   const serverSignedIn = !!(s.auth?.status==='signed_in' && s.auth?.user?.id && String(s.auth?.user?.role||'fan').toLowerCase()==='fan');
-  const isDemoFan = !serverSignedIn || !serverFanId;
+  const needsServerAuth = !serverSignedIn || !serverFanId;
   try{
-    if(isDemoFan){
-      throw new Error('__DEMO_CHAT_FALLBACK__');
-    }
+    if(needsServerAuth && location.protocol!=='file:'){ throw new Error('Please sign in as a fan to send messages.'); }
+    if(needsServerAuth){ throw new Error('__LOCAL_PREVIEW_CHAT__'); }
     if(!chatId && creatorId){
       const cr=await fetch('/api/chats',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({fanId:serverFanId,creatorId})});
       const cd=await cr.json().catch(()=>({}));
@@ -2074,8 +2073,8 @@ async function sendFanMessage(){
     if(res.status!==401&&res.status!==404&&res.status!==405)throw new Error(data.error||'Message could not be sent');
     if(location.protocol!=='file:'){alert('⚠️ Chat server is not connected. Message was not charged.');return;}
   }catch(e){
-    const demoFallback = String(e?.message||'')==='__DEMO_CHAT_FALLBACK__';
-    if(location.protocol!=='file:' && !demoFallback){
+    const localPreview = String(e?.message||'')==='__LOCAL_PREVIEW_CHAT__';
+    if(location.protocol!=='file:' && !localPreview){
       alert('⚠️ '+String(e?.message||'Chat server unavailable')+'\n\nMessage was not charged.');
       return;
     }
@@ -2084,7 +2083,7 @@ async function sendFanMessage(){
     s.balance=Number(s.balance||0)-rate;
     s.earn=Number(s.earn||0)+rate;
     if(!Array.isArray(s.tx))s.tx=[];
-    s.tx.push({d:'Paid chat message · '+(f.name||'Creator'),a:rate,ts:Date.now(),type:'chat-message-demo'});
+    s.tx.push({d:'Paid chat message · '+(f.name||'Creator'),a:rate,ts:Date.now(),type:'chat-message-local-preview'});
   }
   if(!f.messages)f.messages=[];
   f.messages.push({from:'fan',text,ts:Date.now(),adminRead:false,id:msgId});
@@ -2216,7 +2215,7 @@ function sendSupport(){let e=s.supportEmail,m=document.getElementById('supportMe
 async function setRate(v){
   const rate=Math.max(0,Number(v)||0);
   s.rate=rate;
-  // Keep the actual demo fan charge in sync with the Chat Pricing control.
+  // Keep local preview pricing in sync with the Chat Pricing control.
   if(Array.isArray(s.fans))s.fans.forEach(f=>{if(String(f.id)==='fan1' || f.isDemo)f.chatPrice=rate;});
   save();
   // If a real creator is signed in, persist the same rate to the server ledger.
@@ -2230,9 +2229,9 @@ function togglePostAccess(){let sub=document.getElementById('postAccess').value=
 function renderPlanSelect(){let el=document.getElementById('postPlan');if(!el)return;let active=s.plans.filter(p=>p.active);el.innerHTML=active.length?active.map(p=>`<option value="${escapeHtml(p.id)}">${escapeHtml(p.name)} — ${money(p.price)}</option>`).join(''):'<option value="">No active subscription plans</option>'}
 let __ccGiftSyncAt=0,__ccGiftSyncBusy=false;
 async function syncGiftsServer(force=false){const signed=s.auth?.status==='signed_in',creatorId=getCurrentCreatorId();if(!signed||!creatorId||location.protocol==='file:'||__ccGiftSyncBusy||(!force&&Date.now()-__ccGiftSyncAt<10000))return;__ccGiftSyncBusy=true;__ccGiftSyncAt=Date.now();try{const r=await fetch('/api/gifts?creatorId='+encodeURIComponent(creatorId),{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json();s.giftCatalog=(d.gifts||[]).map(g=>({id:g.id,creatorId:g.creatorId,emoji:g.emoji,name:g.name,price:Number(g.pricePaise||0)/100,pricePaise:Number(g.pricePaise||0),active:g.active!==false}));localStorage.setItem('cc6',JSON.stringify(s));render();}}catch(e){}finally{__ccGiftSyncBusy=false;}}
-async function addGift(){let e=document.getElementById('giftEmoji').value.trim()||'🎁',n=document.getElementById('giftName').value.trim(),p=Number(document.getElementById('giftPrice').value);if(!n||p<0||!Number.isFinite(p))return alert('Gift name and a valid amount are required.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatorId:getCurrentCreatorId(),emoji:e,name:n,pricePaise:Math.round(p*100)})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not add gift');document.getElementById('giftEmoji').value='';document.getElementById('giftName').value='';document.getElementById('giftPrice').value='';await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not add gift.')}}s.giftCatalog.push({id:Date.now(),emoji:e,name:n,price:p,active:true});document.getElementById('giftEmoji').value='';document.getElementById('giftName').value='';document.getElementById('giftPrice').value='';save()}
-async function toggleGift(id){let g=s.giftCatalog.find(x=>String(x.id)===String(id));if(!g)return;if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,active:!g.active})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not update gift');await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not update gift.')}}g.active=!g.active;save()}
-async function editGift(id){let g=s.giftCatalog.find(x=>String(x.id)===String(id));if(!g)return;let n=prompt('Gift name',g.name);if(n===null)return;let p=Number(prompt('Gift amount ₹',g.price));if(!Number.isFinite(p)||p<0)return alert('Enter a valid amount.');let e=prompt('Gift emoji',g.emoji);if(e===null)e=g.emoji;if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name:n.trim()||g.name,pricePaise:Math.round(p*100),emoji:e.trim()||g.emoji})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not edit gift');await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not edit gift.')}}g.name=n.trim()||g.name;g.price=p;g.emoji=e.trim()||g.emoji;save()}
+async function addGift(){let e=document.getElementById('giftEmoji').value.trim()||'🎁',n=document.getElementById('giftName').value.trim(),p=Number(document.getElementById('giftPrice').value);if(!n||p<0||!Number.isFinite(p))return alert('Gift name and a valid amount are required.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({creatorId:getCurrentCreatorId(),emoji:e,name:n,pricePaise:Math.round(p*100)})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not add gift');document.getElementById('giftEmoji').value='';document.getElementById('giftName').value='';document.getElementById('giftPrice').value='';await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not add gift.')}}if(location.protocol!=='file:')return alert('Admin gift service is unavailable. Please try again.');s.giftCatalog.push({id:Date.now(),emoji:e,name:n,price:p,active:true});document.getElementById('giftEmoji').value='';document.getElementById('giftName').value='';document.getElementById('giftPrice').value='';save()}
+async function toggleGift(id){let g=s.giftCatalog.find(x=>String(x.id)===String(id));if(!g)return;if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,active:!g.active})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not update gift');await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not update gift.')}}if(location.protocol!=='file:')return alert('Admin gift service is unavailable. Please try again.');g.active=!g.active;save()}
+async function editGift(id){let g=s.giftCatalog.find(x=>String(x.id)===String(id));if(!g)return;let n=prompt('Gift name',g.name);if(n===null)return;let p=Number(prompt('Gift amount ₹',g.price));if(!Number.isFinite(p)||p<0)return alert('Enter a valid amount.');let e=prompt('Gift emoji',g.emoji);if(e===null)e=g.emoji;if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'PATCH',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,name:n.trim()||g.name,pricePaise:Math.round(p*100),emoji:e.trim()||g.emoji})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not edit gift');await syncGiftsServer(true);return;}catch(err){return alert(err.message||'Could not edit gift.')}}if(location.protocol!=='file:')return alert('Admin gift service is unavailable. Please try again.');g.name=n.trim()||g.name;g.price=p;g.emoji=e.trim()||g.emoji;save()}
 let __ccNotifSyncAt=0,__ccNotifSyncBusy=false,__ccSettingsSyncAt=0,__ccSettingsSyncBusy=false;
 async function syncNotificationsServer(force=false){const signed=s.auth?.status==='signed_in';if(!signed||location.protocol==='file:'||__ccNotifSyncBusy||(!force&&Date.now()-__ccNotifSyncAt<10000))return;__ccNotifSyncBusy=true;try{const r=await fetch('/api/notifications?limit=100',{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json();s.notifications=(d.notifications||[]).map(n=>{const p=n.payload||{};return {id:n.id,type:n.type,read:!!n.read,title:p.title||'Notification',text:p.text||'',icon:p.icon||'🔔',at:n.createdAt,ts:new Date(n.createdAt).getTime()};});saveNoRender();renderNotifications();renderFanNotifications();}}catch(e){}finally{__ccNotifSyncAt=Date.now();__ccNotifSyncBusy=false;}}
 async function syncSettingsServer(force=false){const signed=s.auth?.status==='signed_in';if(!signed||location.protocol==='file:'||__ccSettingsSyncBusy||(!force&&Date.now()-__ccSettingsSyncAt<15000))return;__ccSettingsSyncBusy=true;try{const r=await fetch('/api/settings',{credentials:'include',cache:'no-store'});if(r.ok){const d=await r.json(),x=d.settings||{};s.userName=x.name||s.userName||'';s.name=x.name||s.name||'';s.email=x.email||s.email||'';s.mobile=x.mobile||s.mobile||'';s.supportEmail=x.supportEmail||'';if(x.preferences&&typeof x.preferences==='object'){const q=x.preferences.notificationPrefs;if(q&&typeof q==='object')s.notificationPrefs=q;}saveNoRender();renderAccountSettings();}}catch(e){}finally{__ccSettingsSyncAt=Date.now();__ccSettingsSyncBusy=false;}}
@@ -2247,7 +2246,7 @@ function updateWalletCustomBonus(){let el=document.getElementById('walletCustomB
 function customWalletRecharge(){return startWalletRechargeFromInput('walletCustomAmount');}
 function recharge(v){return startWalletRecharge(Number(v));}
 async function subscribe(v,n){v=Number(v||0);let plan=(s.plans||[]).find(p=>String(p.name)===String(n)||Number(p.price)===v);if(!plan)return alert('Subscription plan not found.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'subscribe',planId:plan.id})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402)return alert('Wallet balance insufficient. Recharge first.');throw new Error(d.error||'Subscription failed.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;await syncSubscriptionsServer(true);save();render();alert('✅ Subscription activated.');return;}catch(e){return alert(e.message||'Could not activate subscription.');}}if(s.balance<v)return alert('Wallet balance insufficient. Recharge first.');let months=Number(plan.durationMonths||1);s.balance-=v;s.member=plan.name;s.orders++;s.earn+=v;s.subscription={name:plan.name,price:v,durationMonths:months,startedAt:Date.now(),expiresAt:Date.now()+months*30*24*60*60*1000};s.tx.push({d:'Subscription — '+plan.name,a:v,ts:Date.now(),type:'subscription'});save();render();alert('Subscription activated.');}
-async function gift(giftId){let g=s.giftCatalog.find(x=>String(x.id)===String(giftId));if(!g)return alert('Gift unavailable.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'send',giftId:String(giftId)})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402)return alert('Wallet balance insufficient. Recharge first.');throw new Error(d.error||'Gift could not be sent.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;s.orders++;await syncGiftsServer(true);save();alert('🎁 Gift sent successfully.');return;}catch(err){return alert(err.message||'Gift could not be sent.');}}if(s.balance<Number(g.price||0))return alert('Wallet balance insufficient. Recharge first.');s.balance-=Number(g.price||0);s.orders++;s.earn+=Number(g.price||0);s.tx.push({d:'Gift — '+g.name,a:Number(g.price||0),ts:Date.now()});save();alert('Gift sent (demo).')}
+async function gift(giftId){let g=s.giftCatalog.find(x=>String(x.id)===String(giftId));if(!g)return alert('Gift unavailable.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{const r=await fetch('/api/gifts',{method:'POST',credentials:'include',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'send',giftId:String(giftId)})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402)return alert('Wallet balance insufficient. Recharge first.');throw new Error(d.error||'Gift could not be sent.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;s.orders++;await syncGiftsServer(true);save();alert('🎁 Gift sent successfully.');return;}catch(err){return alert(err.message||'Gift could not be sent.');}}if(location.protocol!=='file:')return alert('Please sign in as a fan to send gifts.');if(s.balance<Number(g.price||0))return alert('Wallet balance insufficient. Recharge first.');s.balance-=Number(g.price||0);s.orders++;s.earn+=Number(g.price||0);s.tx.push({d:'Gift — '+g.name,a:Number(g.price||0),ts:Date.now()});save();alert('Gift sent (local preview).')}
 function updateMediaPreview(){let box=document.getElementById('mediaPreview'),files=[...document.getElementById('postMedia').files],blur=Number(document.getElementById('blurRange').value);box.innerHTML=files.length?files.map(f=>`<div style="padding:6px 0;border-bottom:1px solid #eee">${f.type.startsWith('video/')?'🎥':'📸'} ${escapeHtml(f.name)}</div>`).join(''):'No media selected'}
 document.addEventListener('change',e=>{if(e.target.id==='postMedia')updateMediaPreview()});
 document.addEventListener('input',e=>{if(e.target.id==='blurRange')document.getElementById('blurValue').textContent=e.target.value+'px'});
@@ -2295,10 +2294,10 @@ async function deleteDraft(id){if(!confirm('Delete this draft?'))return;if(s.aut
 function toggleSavedPost(id){s.savedPosts=Array.isArray(s.savedPosts)?s.savedPosts:[];const sid=String(id),i=s.savedPosts.map(String).indexOf(sid);if(i>=0)s.savedPosts.splice(i,1);else s.savedPosts.push(id);save();renderSavedPosts();render();}
 function renderSavedPosts(){const box=document.getElementById('savedPostList');if(!box)return;const ids=Array.isArray(s.savedPosts)?s.savedPosts.map(String):[];const posts=(s.posts||[]).filter(p=>p.status!=='draft'&&ids.includes(String(p.id)));box.innerHTML=posts.length?posts.slice().reverse().map(p=>`<div class="row" style="padding:9px 0;border-bottom:1px solid #eee"><span><b>${escapeHtml(p.title||'Untitled')}</b><div class="muted">${p.access==='subscription'?'⭐ Subscription':money(p.price)}</div></span><button class="btn light" onclick="toggleSavedPost(${escapeHtml(JSON.stringify(String(p.id)))})">Remove</button></div>`).join(''):'<div class="muted">No saved posts yet.</div>';}
 function renderDraftPosts(){const el=document.getElementById('draftPostList');if(!el)return;const drafts=(s.posts||[]).filter(p=>p.status==='draft').slice().reverse();el.innerHTML=drafts.length?drafts.map(p=>`<div style="padding:11px 0;border-bottom:1px solid #eee"><div class="row"><b>${escapeHtml(p.title||'Untitled draft')}</b><span class="pill">DRAFT</span></div><div class="muted" style="margin-top:5px">${escapeHtml(p.text||p.content||'No description')}</div><div style="margin-top:8px"><button class="btn" onclick="publishDraft(${escapeHtml(JSON.stringify(String(p.id)))})">PUBLISH</button><button class="btn light" onclick="deleteDraft(${escapeHtml(JSON.stringify(String(p.id)))})">DELETE</button></div></div>`).join(''):'<div class="muted">No drafts yet.</div>';}
-async function createPost(){let p=collectPostForm();if(!p.title)return alert('Post title is required.');if(p.access==='paid'&&(p.price<0||!Number.isFinite(p.price)))return alert('Enter a valid amount for a paid post.');if(p.access==='subscription'&&!s.plans.some(q=>String(q.id)===String(p.planId)&&q.active))return alert('Select an active subscription plan.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{p.media=await uploadPostMedia(p.files||[]);delete p.files;const r=await CreatorChatAuth.api('/api/posts',{method:'POST',body:JSON.stringify(postApiPayload(p,'published'))});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not publish post');await syncPostsServer(true);clearPostForm();render();alert('Post published.');return;}catch(e){return alert(e.message||'Could not publish post.');}}p.id=Date.now();p.status='published';p.unlocked=false;s.posts.push(p);save();clearPostForm();alert('Post published (demo).');}
+async function createPost(){let p=collectPostForm();if(!p.title)return alert('Post title is required.');if(p.access==='paid'&&(p.price<0||!Number.isFinite(p.price)))return alert('Enter a valid amount for a paid post.');if(p.access==='subscription'&&!s.plans.some(q=>String(q.id)===String(p.planId)&&q.active))return alert('Select an active subscription plan.');if(s.auth?.status==='signed_in'&&getCurrentCreatorId()&&location.protocol!=='file:'){try{p.media=await uploadPostMedia(p.files||[]);delete p.files;const r=await CreatorChatAuth.api('/api/posts',{method:'POST',body:JSON.stringify(postApiPayload(p,'published'))});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Could not publish post');await syncPostsServer(true);clearPostForm();render();alert('Post published.');return;}catch(e){return alert(e.message||'Could not publish post.');}}if(location.protocol!=='file:')return alert('Please sign in as a creator to publish posts.');p.id=Date.now();p.status='published';p.unlocked=false;s.posts.push(p);save();clearPostForm();alert('Post published (local preview).');}
 async function editPost(id){let p=s.posts.find(x=>String(x.id)===String(id));if(!p)return;let title=prompt('Post title',p.title);if(title===null)return;let price=p.access==='paid'?Number(prompt('Paid amount ₹',p.price)):p.price;if(p.access==='paid'&&(!Number.isFinite(price)||price<0))return alert('Enter a valid amount.');let blur=Number(prompt('Blur (0-30)',p.blur||12));if(!Number.isFinite(blur))blur=12;p.title=title.trim()||p.title;p.price=price;p.blur=Math.min(30,Math.max(0,blur));if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(p.id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'PATCH',body:JSON.stringify({id:String(id),title:p.title,content:p.text??p.content??'',accessType:p.access,pricePaise:Math.round(Number(p.price||0)*100),planId:p.planId||null,blur:p.blur,media:p.media||[],status:p.status||'published'})});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Update failed');await syncPostsServer(true);render();return;}catch(e){return alert(e.message||'Could not update post.');}}save();}
 async function deletePost(id){if(!confirm('Delete this post?'))return;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'DELETE',body:JSON.stringify({id:String(id)})});if(!r.ok){const d=await r.json().catch(()=>({}));throw new Error(d.error||'Delete failed');}await syncPostsServer(true);render();return;}catch(e){return alert(e.message||'Could not delete post.');}}s.posts=s.posts.filter(p=>String(p.id)!==String(id));save();}
-async function unlockPost(id){let post=s.posts.find(p=>String(p.id)===String(id));if(!post)return;if(post.unlocked||post.accessGranted)return;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'POST',body:JSON.stringify({action:'unlock',postId:String(id)})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402&&d.error==='Insufficient wallet balance')return alert('Wallet balance insufficient. Recharge first.');if(r.status===402&&d.error==='Active subscription required')return alert('You need the required active subscription to view this post.');throw new Error(d.error||'Could not unlock post.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;await syncPostsServer(true);save();render();alert(post.access==='subscription'?'✅ Subscription post unlocked.':'✅ Post unlocked.');return;}catch(e){return alert(e.message||'Could not unlock post.');}}if(post.access==='subscription'){let plan=s.plans.find(q=>String(q.id)===String(post.planId)&&q.active);if(!plan)return alert('This subscription plan is no longer active.');if(s.member!==plan.name)return alert('To view this post, you need a '+plan.name+' subscription. Go to the Creator section and subscribe to a plan.');post.unlocked=true;save();render();alert('Subscription post unlocked (demo).');return;}if(s.balance<post.price)return alert('Wallet balance insufficient. Recharge first.');s.balance-=post.price;post.unlocked=true;s.orders++;s.earn+=post.price;s.tx.push({d:'Paid post — '+post.title,a:post.price,ts:Date.now()});save();alert('Post unlocked (demo).');}
+async function unlockPost(id){let post=s.posts.find(p=>String(p.id)===String(id));if(!post)return;if(post.unlocked||post.accessGranted)return;if(s.auth?.status==='signed_in'&&location.protocol!=='file:'&&String(id).startsWith('post_')){try{const r=await CreatorChatAuth.api('/api/posts',{method:'POST',body:JSON.stringify({action:'unlock',postId:String(id)})});const d=await r.json().catch(()=>({}));if(!r.ok){if(r.status===402&&d.error==='Insufficient wallet balance')return alert('Wallet balance insufficient. Recharge first.');if(r.status===402&&d.error==='Active subscription required')return alert('You need the required active subscription to view this post.');throw new Error(d.error||'Could not unlock post.');}if(Number.isFinite(Number(d.balancePaise)))s.balance=Number(d.balancePaise)/100;await syncPostsServer(true);save();render();alert(post.access==='subscription'?'✅ Subscription post unlocked.':'✅ Post unlocked.');return;}catch(e){return alert(e.message||'Could not unlock post.');}}if(location.protocol!=='file:')return alert('Please sign in as a fan to unlock posts.');if(post.access==='subscription'){let plan=s.plans.find(q=>String(q.id)===String(post.planId)&&q.active);if(!plan)return alert('This subscription plan is no longer active.');if(s.member!==plan.name)return alert('To view this post, you need a '+plan.name+' subscription. Go to the Creator section and subscribe to a plan.');post.unlocked=true;save();render();alert('Subscription post unlocked (local preview).');return;}if(s.balance<post.price)return alert('Wallet balance insufficient. Recharge first.');s.balance-=post.price;post.unlocked=true;s.orders++;s.earn+=post.price;s.tx.push({d:'Paid post — '+post.title,a:post.price,ts:Date.now()});save();alert('Post unlocked (local preview).');}
 
 function send(){let i=document.getElementById('msg'),t=i.value.trim();if(!t)return;if(!s.free&&s.balance<s.rate)return alert('Wallet balance insufficient. Recharge first.');if(!s.free){s.balance-=s.rate;s.earn+=s.rate;s.orders++;s.tx.push({d:'Paid message',a:s.rate,ts:Date.now()})}let box=document.getElementById('chatbox'),mine=document.createElement('div'),reply=document.createElement('div');mine.className='bubble mine';mine.textContent=t;reply.className='bubble';reply.textContent='Received ❤️';box.append(mine,reply);i.value='';save()}
 function renderTransactions(){
@@ -3469,7 +3468,7 @@ function toggleSubscriptionPlan(planId){
   save();renderSubscriptionControls();
   if(typeof addAdminAudit==='function')addAdminAudit(p.active?'Subscription plan activated':'Subscription plan paused',p.name||'Subscription');
 }
-async function cancelSubscription(subId){ensureSubscriptionSettings();if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions?id='+encodeURIComponent(subId),{method:'DELETE',credentials:'include'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Cancellation failed');await syncSubscriptionsServer(true);render();if(typeof addNotification==='function')addNotification('Subscription cancelled','Your subscription has been cancelled.','subscription');return;}catch(e){return alert(e.message||'Could not cancel subscription.');}}const x=s.subscriptions.find(z=>String(z.id)===String(subId));if(!x)return;x.active=false;x.status='cancelled';x.cancelledAt=new Date().toISOString();save();if(typeof addNotification==='function')addNotification('Subscription cancelled','Your subscription has been cancelled.','subscription');renderMySubscriptions();renderSubscriptionRenewals();}
+async function cancelSubscription(subId){ensureSubscriptionSettings();if(s.auth?.status==='signed_in'&&location.protocol!=='file:'){try{const r=await fetch('/api/subscriptions?id='+encodeURIComponent(subId),{method:'DELETE',credentials:'include'});const d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||'Cancellation failed');await syncSubscriptionsServer(true);render();if(typeof addNotification==='function')addNotification('Subscription cancelled','Your subscription has been cancelled.','subscription');return;}catch(e){return alert(e.message||'Could not cancel subscription.');}}if(location.protocol!=='file:')return alert('Subscription service is unavailable. Please try again.');const x=s.subscriptions.find(z=>String(z.id)===String(subId));if(!x)return;x.active=false;x.status='cancelled';x.cancelledAt=new Date().toISOString();save();if(typeof addNotification==='function')addNotification('Subscription cancelled','Your subscription has been cancelled.','subscription');renderMySubscriptions();renderSubscriptionRenewals();}
 function toggleSubscriptionPreferences(){
   const p=document.getElementById('subscriptionPreferencesPanel');if(!p)return;
   const open=p.style.display!=='none';p.style.setProperty('display',open?'none':'block','important');
@@ -4122,21 +4121,6 @@ try{ensurePayoutState();enforcePayoutRoleVisibility();loadPayoutDetails();}catch
   </div>
 </div>
 
-<div id="adminModeGate" class="modal" style="display:none!important;position:fixed;inset:0;background:rgba(0,0,0,.48);z-index:21000;padding:18px;box-sizing:border-box">
-  <div class="modal-card" style="max-width:420px;width:100%;margin:12vh auto;background:#fff;border-radius:18px;padding:20px;box-shadow:0 15px 50px rgba(0,0,0,.25)">
-    <div class="row">
-      <div>
-        <h2 style="margin:0">🔐 Admin Access</h2>
-        <div class="muted" style="margin-top:5px">Enter the admin access passcode to switch modes.</div>
-      </div>
-      <button type="button" class="btn light" onclick="closeAdminModeGate()">✕</button>
-    </div>
-    <input id="adminModeGateInput" type="password" inputmode="numeric" placeholder="Admin access passcode" autocomplete="off" style="margin-top:14px">
-    <button class="btn full" type="button" onclick="unlockAdminMode()" style="margin-top:10px">Switch to Admin Mode</button>
-    <div class="muted" id="adminModeGateMessage" style="margin-top:8px"></div>
-  </div>
-</div>
-
 
 
 
@@ -4231,7 +4215,7 @@ try{
       '<div class="row" style="margin-top:12px;gap:8px;flex-wrap:wrap">'+
       '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',&quot;'+(blocked?'Active':'Blocked')+'&quot;)">'+(blocked?'Unblock':'Block')+'</button>'+
       '<button class="btn light" type="button" onclick="setFanAdminStatus('+index+',&quot;'+(suspended?'Active':'Suspended')+'&quot;)">'+(suspended?'Unsuspend':'Suspend')+'</button>'+
-      '<button class="btn light" type="button" onclick="viewFanAsAdmin('+index+')">View as Fan</button>'+
+      
       '<button class="btn light" type="button" onclick="openFanManager()">← Back</button>'+
       '</div></div>';
   };
@@ -4245,7 +4229,7 @@ try{
       var d=await r.json().catch(()=>({}));
       if(!r.ok)throw new Error(d.error||'Fan update failed');
       f.status=d.fan?.status||newStatus; f.name=d.fan?.name||f.name; f.email=d.fan?.email||f.email; f.mobile=d.fan?.mobile||f.mobile;
-    }catch(e){ f.status=newStatus; }
+    }catch(e){ return alert(e.message||'Fan update failed on server.'); }
     try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
     renderFanAdminActions(index); renderFanAccountSections(f);
   };
@@ -4412,7 +4396,8 @@ function mergeServerFanLocal(u){
       const r=await fetch('/api/admin/fans?limit=100',{credentials:'include',cache:'no-store'});
       const d=await r.json().catch(()=>({}));
       if(r.status===401||r.status===403){
-        CreatorChatAuth.signOut();s.mode='fan';save();return false;
+        if(typeof window.demoteFromServerAuth==='function')window.demoteFromServerAuth();else{CreatorChatAuth.signOut();s.mode='fan';save();}
+        return false;
       }
       if(!r.ok)throw new Error(d.error||'Could not load fans');
       s.fans=Array.isArray(d.fans)?d.fans.map(toFan):[];
@@ -4498,7 +4483,7 @@ function mergeServerFanLocal(u){
 (function(){
   'use strict';
   /* Step 216: non-breaking data-layer foundation.
-     Keeps the current local demo working while giving every core entity a stable schema.
+     Keeps the local data model consistent with the server-backed production schema.
      Provider credentials are not stored in this client-side data layer. */
   try{
     if(!window.s || typeof window.s!=='object') return;
@@ -5059,7 +5044,8 @@ function mergeServerFanLocal(u){
     setSession:function(user,provider){
       const clean={id:String(user?.id||''),role:String(user?.role||'fan'),name:String(user?.name||''),email:String(user?.email||''),mobile:String(user?.mobile||'')};
       if(!clean.id)return false;
-      const session={version:AUTH_VERSION,status:'signed_in',provider:String(provider||'server'),user:clean,issuedAt:now(),updatedAt:now()};
+      const serverVerified=String(provider||'').toLowerCase()==='server';
+      const session={version:AUTH_VERSION,status:'signed_in',provider:String(provider||'pending'),serverVerified,user:clean,issuedAt:now(),updatedAt:now()};
       safeWrite(session);ensureAuthState();s.auth={...s.auth,...session};return true;
     },
     signOut:function(){
@@ -5067,21 +5053,31 @@ function mergeServerFanLocal(u){
       ensureAuthState();s.auth={...s.auth,status:'signed_out',user:null,updatedAt:now()};
       return true;
     },
-    requireRole:function(role){const u=this.currentUser();return !!u&&String(u.role||'').toLowerCase()===String(role||'').toLowerCase();},
-    api:function(path,options){
+    requireRole:function(role){const x=safeRead(),u=x&&x.user;return !!(x&&x.status==='signed_in'&&x.serverVerified===true&&u&&String(u.role||'').toLowerCase()===String(role||'').toLowerCase());},
+    api:async function(path,options){
       const opts=options&&typeof options==='object'?{...options}:{};opts.credentials='include';
-      opts.headers={...(options&&options.headers||{}),'Content-Type':'application/json'};return fetch(path,opts);
+      opts.headers={...(options&&options.headers||{}),'Content-Type':'application/json'};
+      const r=await fetch(path,opts);
+      if((r.status===401||r.status===403)&&/^(\/api\/admin|\/api\/analytics|\/api\/earnings|\/api\/export|\/api\/creator)/.test(String(path||''))){
+        if(typeof window.demoteFromServerAuth==='function')window.demoteFromServerAuth();
+      }
+      return r;
     }
   };
   window.restoreAuthSession=function(){
     ensureAuthState();const session=CreatorChatAuth.getSession();
-    if(session&&session.status==='signed_in'&&session.user&&session.user.id){
+    if(session&&session.status==='signed_in'&&session.serverVerified===true&&session.user&&session.user.id){
       s.auth={...s.auth,...session,updatedAt:now()};
       if(session.user.role==='admin')try{sessionStorage.setItem('creatorchat_admin_unlocked','1');}catch(e){}
       return true;
     }return false;
   };
   window.clearAuthSession=function(){CreatorChatAuth.signOut();};
+  window.demoteFromServerAuth=function(){
+    try{CreatorChatAuth.signOut();}catch(e){}
+    try{if(window.s){s.mode='fan';s.fanAccount={name:'',contact:'',email:'',mobile:'',loggedIn:false};s.fans=[];s.posts=[];s.plans=[];s.subscriptions=[];s.tx=[];s.balance=0;s.orders=0;s.earn=0;s.chatAccess={};s.notifications=[];s.auditLog=[];s.activeFanId='';s.activeCreatorId='';localStorage.setItem('cc6',JSON.stringify(s));}}catch(e){}
+    document.body?.setAttribute('data-mode','fan');
+  };
   window.adminLogin=async function(){
     const email=document.getElementById('adminLoginEmail')?.value.trim(),password=document.getElementById('adminLoginPassword')?.value||'',msg=document.getElementById('adminLoginMessage');
     if(!email||!/^\S+@\S+\.\S+$/.test(email)){if(msg)msg.textContent='Enter a valid admin email.';return;}
@@ -5112,30 +5108,15 @@ function mergeServerFanLocal(u){
   // Production rule: the old client-side passcode must never grant admin access.
   // Admin access is granted only after the server validates /api/auth/login.
   window.unlockAdminMode=async function(){
-    const gateMsg=document.getElementById('adminModeGateMessage');
-    const gateInput=document.getElementById('adminModeGateInput');
-    if(gateInput)gateInput.value='';
-    if(gateMsg)gateMsg.textContent='Use your admin email and password to continue.';
     const panel=document.getElementById('adminLoginPanel');
     if(panel)panel.style.setProperty('display','block','important');
+    const msg=document.getElementById('adminLoginMessage');
+    if(msg)msg.textContent='';
     const email=document.getElementById('adminLoginEmail');
     if(email)setTimeout(()=>email.focus(),50);
-    const gate=document.getElementById('adminModeGate');
-    if(gate)gate.style.setProperty('display','none','important');
-  };
-  window.openAdminModeGate=function(){
-    const panel=document.getElementById('adminLoginPanel');
-    if(panel)panel.style.setProperty('display','block','important');
-    const gate=document.getElementById('adminModeGate');
-    if(gate)gate.style.setProperty('display','none','important');
-    const msg=document.getElementById('adminLoginMessage'); if(msg)msg.textContent='';
-  };
-  window.closeAdminModeGate=function(){
-    const gate=document.getElementById('adminModeGate');
-    if(gate)gate.style.setProperty('display','none','important');
   };
   window.CreatorChatProduction242={
-    version:'242.0',
+    version:'249.5.35',
     clientAdminPasscodeDisabled:true,
     serverAuthRequired:true,
     verifyAdminSession:async function(){
@@ -5217,11 +5198,11 @@ function mergeServerFanLocal(u){
   loadCreator();
 })();
 </script><!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
-<script id="creatorchat-release-249-5-32">window.CreatorChatProductionRelease532={version:'249.5.32',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
+<script id="creatorchat-release-249-5-36">window.CreatorChatProductionRelease536={version:'249.5.36',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
 \n<script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
 <script id="creatorchat-step-249-5-31-final-admin-guard">
 (()=>{
-  // Production invariant: a fan must never receive an Admin View action.
+  // Production invariant: a fan must never receive administrator actions.
   // Admin access is available only through the server-authenticated Admin Login.
   function enforce(){
     const admin=!!(window.CreatorChatAuth?.requireRole?.('admin'));
@@ -5231,13 +5212,91 @@ function mergeServerFanLocal(u){
       const box=document.getElementById('menuItems');
       if(box){
         [...box.querySelectorAll('button')].forEach(b=>{
-          if(/admin view|admin controls/i.test(b.textContent||''))b.remove();
+          if(/admin controls/i.test(b.textContent||''))b.remove();
         });
       }
     }
   }
   setTimeout(enforce,0);
   setTimeout(enforce,250);
+})();
+</script>
+<script id="step2495-final-admin-fan-detail">
+(function(){
+  if(window.__ccFinalAdminFanDetail)return;window.__ccFinalAdminFanDetail=true;
+  const base=window.renderFanAdminActions;
+  window.renderFanAdminActions=async function(index){
+    if(typeof base==='function')base(index);
+    if(!window.CreatorChatAuth?.requireRole?.('admin'))return;
+    const f=(Array.isArray(s.fans)?s.fans:[])[index]; if(!f||!f.id)return;
+    try{
+      const r=await fetch('/api/admin/fans?fanId='+encodeURIComponent(String(f.id)),{credentials:'include',cache:'no-store'});
+      const d=await r.json().catch(()=>({})); if((r.status===401||r.status===403)&&typeof window.demoteFromServerAuth==='function')window.demoteFromServerAuth(); if(!r.ok)throw new Error(d.error||'Could not load fan activity');
+      Object.assign(f,{balance:Number(d.fan?.balance_paise||0)/100,balancePaise:Number(d.fan?.balance_paise||0),transactionCount:(d.transactions||[]).length,postPurchaseCount:(d.purchases||[]).length,activeSubscriptions:(d.subscriptions||[]).filter(x=>x.status==='active').length,transactions:d.transactions||[],purchases:d.purchases||[],activities:d.chats||[]});
+      if(typeof renderFanAccountSections==='function')renderFanAccountSections(f);
+    }catch(e){const box=document.getElementById('fanTransactionsList');if(box)box.innerHTML='<div class="muted">Unable to load account activity.</div>';}
+  };
+})();
+</script>
+
+<script id="creatorchat-production-session-guard-249-5-36">
+(function(){
+  if(window.__ccProductionSessionGuard35)return;window.__ccProductionSessionGuard35=true;
+  const hosted=location.protocol!=='file:';
+  function wipeHostedLocal(){
+    if(!hosted)return;
+    s.mode='fan';s.fanAccount={name:'',contact:'',email:'',mobile:'',loggedIn:false};
+    s.fans=[];s.posts=[];s.plans=[];s.subscriptions=[];s.tx=[];s.orders=0;s.earn=0;s.balance=0;s.chatAccess={};
+    s.notifications=[];s.auditLog=[];s.giftCatalog=[];s.creatorProfile=null;s.activeFanId='';s.activeCreatorId='';
+    s.auth={...(s.auth||{}),status:'signed_out',provider:'pending',serverVerified:false,user:null,updatedAt:new Date().toISOString()};
+    try{localStorage.removeItem('creatorchat_current_user');localStorage.removeItem('creatorchat_demo_state');localStorage.removeItem('creatorchat_admin_state');localStorage.setItem('cc6',JSON.stringify(s));sessionStorage.removeItem('creatorchat_admin_unlocked');}catch(e){}
+  }
+  async function sync(){
+    if(!hosted||!window.CreatorChatAuth)return;
+    try{
+      const r=await fetch('/api/auth/session',{credentials:'include',cache:'no-store'});
+      const d=await r.json().catch(()=>({}));
+      if(!r.ok||!d.user){
+        CreatorChatAuth.signOut();wipeHostedLocal();s.mode='fan';document.body.setAttribute('data-mode','fan');if(typeof nav==='function')nav();if(typeof show==='function')show('home');return;
+      }
+      CreatorChatAuth.setSession(d.user,'server');
+      const role=String(d.user.role||'fan').toLowerCase();
+      s.mode=role==='admin'?'admin':'fan';
+      s.fanAccount={...(s.fanAccount||{}),id:d.user.id,name:d.user.name||'',email:d.user.email||'',mobile:d.user.mobile||'',contact:d.user.email||d.user.mobile||'',loggedIn:true};
+      try{localStorage.setItem('cc6',JSON.stringify(s));}catch(e){}
+      document.body.setAttribute('data-mode',s.mode);
+      if(typeof nav==='function')nav();
+      if(role==='admin'&&typeof syncAdminFansServer==='function')syncAdminFansServer(true);
+      if(role==='fan'&&typeof syncServerFan==='function')syncServerFan();
+    }catch(e){
+      if(hosted){wipeHostedLocal();s.mode='fan';document.body.setAttribute('data-mode','fan');if(typeof nav==='function')nav();}
+    }
+  }
+  if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>setTimeout(sync,50));else setTimeout(sync,50);
+})();
+</script>
+
+<script id="creatorchat-final-mode-hardening-249-5-36">
+(function(){
+  if(window.__ccFinalModeHardening36)return;window.__ccFinalModeHardening36=true;
+  const hosted=location.protocol!=='file:';
+  function enforce(){
+    if(!hosted)return;
+    const verified=!!window.CreatorChatAuth?.getSession?.()?.serverVerified;
+    const role=String(window.CreatorChatAuth?.currentUser?.()?.role||'').toLowerCase();
+    if(!verified || !['fan','admin','creator'].includes(role)){
+      if(s.mode!=='fan')s.mode='fan';
+      document.body.setAttribute('data-mode','fan');
+      const t=document.getElementById('menuModeText');if(t)t.textContent='Fan menu';
+    }else if(role==='admin'){
+      s.mode='admin';document.body.setAttribute('data-mode','admin');
+    }else{
+      s.mode='fan';document.body.setAttribute('data-mode','fan');
+    }
+  }
+  enforce();setTimeout(enforce,100);setTimeout(enforce,500);setTimeout(enforce,1500);
+  window.addEventListener('focus',enforce);
+  document.addEventListener('visibilitychange',()=>{if(!document.hidden)enforce();});
 })();
 </script>
 </body>
