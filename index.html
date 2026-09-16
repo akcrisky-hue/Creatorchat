@@ -1534,7 +1534,9 @@ const defaultPlans=[
 ];
 const gifts=[['❤️','Heart',99],['🌹','Rose',199],['💕','Love',399],['💐','Flowers',599],['💎','Diamond',999],['🧸','Teddy',1499],['💖','Big Heart',2499],['🎁','Love Box',4999],['💝','Premium',7999],['💋','Kiss',9999],['👑','Royal',14999],['💎','Ultimate',19999]];
 let s=JSON.parse(localStorage.getItem('cc6')||'null')||{mode:'fan',balance:0,rate:29,free:false,member:'None',earn:0,orders:0,tx:[],posts:[],plans:[],planVersion:2,supportEmail:''};
-const hostedApp=location.protocol!=='file:'; if(hostedApp)s.mode='fan';
+const hostedApp=location.protocol!=='file:';
+const ccAdminEntry=hostedApp && location.hostname.endsWith('.vercel.app') && !new URLSearchParams(location.search).get('creator');
+if(hostedApp)s.mode=ccAdminEntry?'admin':'fan';
 if(typeof s.supportEmail!=='string')s.supportEmail='';
 if(!Array.isArray(s.notifications))s.notifications=[];
 if(!s.notificationPrefs)s.notificationPrefs={creator:true,posts:true,gifts:true,system:true};
@@ -5184,7 +5186,7 @@ function mergeServerFanLocal(u){
     if(email)setTimeout(()=>email.focus(),50);
   };
   window.CreatorChatProduction242={
-    version:'249.5.46',
+    version:'249.5.47',
     clientAdminPasscodeDisabled:true,
     serverAuthRequired:true,
     verifyAdminSession:async function(){
@@ -5205,7 +5207,37 @@ function mergeServerFanLocal(u){
 </script>
 
 <!-- CreatorChat STEP 243: production DB integration candidate -->
-\n<div id="publicCreatorEntry" class="public-entry-gate" style="display:none!important">\n  <div class="public-entry-wrap">\n    <div class="public-entry-brand">CreatorChat</div>\n    <div class="public-entry-card">\n      <div id="publicCreatorAvatar" class="public-entry-avatar">CC</div>\n      <h2 id="publicCreatorName" style="text-align:center;margin:0">Creator Profile</h2>\n      <div id="publicCreatorBio" class="muted" style="text-align:center;margin-top:6px">Connect with your creator.</div>\n      <div id="publicCreatorStatus" class="public-entry-status"></div>\n      <div class="public-entry-tabs">\n        <button id="publicLoginTab" class="active" type="button" onclick="switchPublicAuth('login')">Fan Login</button>\n        <button id="publicRegisterTab" type="button" onclick="switchPublicAuth('register')">Create Account</button>\n      </div>\n      <div id="publicLoginForm">\n        <input id="publicFanLoginEmail" type="email" placeholder="Email" autocomplete="email">\n        <input id="publicFanLoginPassword" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanLogin()">🔐 Continue as Fan</button>\n      </div>\n      <div id="publicRegisterForm" style="display:none!important">\n        <input id="publicFanRegisterName" type="text" placeholder="Your name" autocomplete="name">\n        <input id="publicFanRegisterEmail" type="email" placeholder="Email" autocomplete="email" style="margin-top:8px">\n        <input id="publicFanRegisterPassword" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" style="margin-top:8px">\n        <button class="btn full" type="button" onclick="submitPublicFanRegister()">✨ Create Fan Account</button>\n      </div>\n      <div id="publicCreatorAuthStatus" class="public-entry-status"></div>\n      <div class="public-entry-note">🔒 This public link is Fan-only. Admin and Creator login options are hidden.</div>\n    </div>\n  </div>\n</div>\n\n<script id="creator-public-link-entry-24951">
+
+<div id="publicCreatorEntry" class="public-entry-gate" style="display:none!important">
+  <div class="public-entry-wrap">
+    <div class="public-entry-brand">CreatorChat</div>
+    <div class="public-entry-card">
+      <div id="publicCreatorAvatar" class="public-entry-avatar">CC</div>
+      <h2 id="publicCreatorName" style="text-align:center;margin:0">Creator Profile</h2>
+      <div id="publicCreatorBio" class="muted" style="text-align:center;margin-top:6px">Connect with your creator.</div>
+      <div id="publicCreatorStatus" class="public-entry-status"></div>
+      <div class="public-entry-tabs">
+        <button id="publicLoginTab" class="active" type="button" onclick="switchPublicAuth('login')">Fan Login</button>
+        <button id="publicRegisterTab" type="button" onclick="switchPublicAuth('register')">Create Account</button>
+      </div>
+      <div id="publicLoginForm">
+        <input id="publicFanLoginEmail" type="email" placeholder="Email" autocomplete="email">
+        <input id="publicFanLoginPassword" type="password" placeholder="Password" autocomplete="current-password" style="margin-top:8px">
+        <button class="btn full" type="button" onclick="submitPublicFanLogin()">🔐 Continue as Fan</button>
+      </div>
+      <div id="publicRegisterForm" style="display:none!important">
+        <input id="publicFanRegisterName" type="text" placeholder="Your name" autocomplete="name">
+        <input id="publicFanRegisterEmail" type="email" placeholder="Email" autocomplete="email" style="margin-top:8px">
+        <input id="publicFanRegisterPassword" type="password" placeholder="Password (8+ characters)" autocomplete="new-password" style="margin-top:8px">
+        <button class="btn full" type="button" onclick="submitPublicFanRegister()">✨ Create Fan Account</button>
+      </div>
+      <div id="publicCreatorAuthStatus" class="public-entry-status"></div>
+      <div class="public-entry-note">🔒 This public link is Fan-only. Admin and Creator login options are hidden.</div>
+    </div>
+  </div>
+</div>
+
+<script id="creator-public-link-entry-24951">
 (function(){
   if(window.__ccPublicEntry24950)return;window.__ccPublicEntry24950=true;
   let creator=null;
@@ -5281,7 +5313,7 @@ function mergeServerFanLocal(u){
   loadCreator();
 })();
 </script><!-- CreatorChat STEP 249.5.44: CREATOR FAN LINK SHARE + DIRECT CHAT -->
-<script id="creatorchat-step-249-5-44">(()=>{if(window.__ccStep249544)return;window.__ccStep249544=true;window.CreatorChatFanLink249544={version:'249.5.46',fanOnly:true,serverChatBootstrap:true,shareApi:true};})();</script>
+<script id="creatorchat-step-249-5-44">(()=>{if(window.__ccStep249544)return;window.__ccStep249544=true;window.CreatorChatFanLink249544={version:'249.5.47',fanOnly:true,serverChatBootstrap:true,shareApi:true};})();</script>
 <!-- CreatorChat STEP 249.5.6: SERVER_BACKED_POSTS_CONTENT -->
 <script id="creatorchat-feature-pack-249-5-42">
 (function(){
@@ -5295,8 +5327,9 @@ function mergeServerFanLocal(u){
  const oldShow=window.show;window.show=function(id){const out=oldShow?.apply(this,arguments);if(id==='adminAudit')setTimeout(refreshAdminAudit,30);if(id==='paymentReconcile')setTimeout(refreshPaymentReconciliation,30);return out;};
 })();
 </script>
-<script id="creatorchat-release-249-5-43">window.CreatorChatProductionRelease543={version:'249.5.46',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
-\n<script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
+<script id="creatorchat-release-249-5-43">window.CreatorChatProductionRelease543={version:'249.5.47',preDeploymentAudit:true,r2Ready:true,postgresReady:true,razorpayLiveReady:true,securityAuditReady:true,adminServerAuthRequired:true,fanMenuAdminViewRemoved:true,authErrorReportingFixed:true};</script>
+
+<script id="creatorchat-step-249-5-8-15">window.CreatorChatProductionHardening2495815={notifications:true,settings:true,serverSync:true,securityAudit:true,finalReadiness:true};</script>
 <script id="creatorchat-step-249-5-31-final-admin-guard">
 (()=>{
   // Production invariant: a fan must never receive administrator actions.
@@ -5477,6 +5510,21 @@ const oldShow=window.show; window.show=function(id){oldShow(id); if(id==='featur
     if(box)box.innerHTML=items.map(x=>{const xid=String(x.id||'').replace(/&/g,'&amp;').replace(/'/g,'&#39;'),name=escapeHtml(x.title||'Item'),status=escapeHtml(x.status||''),price='₹'+(Number(x.price_paise||0)/100).toLocaleString('en-IN');let action='';if(s.mode==='fan'){if(feature==='product'&&status==='published')action='<button class="btn full" style="margin-top:8px" onclick="ccFeaturePurchase(\''+xid+'\')">Buy / Access</button>';if(feature==='live'&&['scheduled','live'].includes(String(x.status||'')))action='<button class="btn full" style="margin-top:8px" onclick="ccFeaturePurchaseLive(\''+xid+'\')">'+(String(x.access_type||'free')==='free'?'Join Live':'Buy / Access')+'</button>';if(feature==='product'&&x.delivery_url)action+='<a class="btn full" style="display:block;text-align:center;margin-top:8px;text-decoration:none" href="'+String(x.delivery_url).replace(/"/g,'&quot;')+'" target="_blank" rel="noopener noreferrer">Open Delivery</a>';}return '<div class="card" style="margin-top:8px"><div class="row"><b>'+name+'</b><span class="pill">'+status+'</span></div><div class="muted" style="margin-top:5px">'+price+'</div>'+action+'</div>';}).join('');
    }catch(e){if(box)box.innerHTML='<div class="muted">'+escapeHtml(e.message||'Unable to load')+'</div>';}
  };
+})();
+</script>
+<script id="creatorchat-step-249-5-47-admin-entry">
+(function(){
+  if(window.__ccStep249547)return; window.__ccStep249547=true;
+  // Vercel deployment root is the private admin entry; creator links remain fan-facing.
+  try{
+    const p=new URLSearchParams(location.search);
+    const adminEntry=location.protocol!=='file:' && location.hostname.endsWith('.vercel.app') && !p.get('creator');
+    if(adminEntry){
+      s.mode='admin';
+      const open=()=>{ if(typeof window.unlockAdminMode==='function') window.unlockAdminMode(); };
+      if(document.readyState==='loading') document.addEventListener('DOMContentLoaded',open,{once:true}); else setTimeout(open,0);
+    }
+  }catch(e){}
 })();
 </script>
 </body>

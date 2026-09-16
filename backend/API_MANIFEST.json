@@ -1,5 +1,5 @@
 {
-  "version": "249.5.46",
+  "version": "249.5.47",
   "status": "production-hardening-release",
   "routes": [
     "GET /api/admin/fans",

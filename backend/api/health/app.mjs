@@ -1,5 +1,5 @@
 import { json, requestId } from '../../lib.mjs';
-const VERSION='249.5.46';
+const VERSION='249.5.47';
 export default async function handler(req,res){
   const rid=requestId(req);
   if(req.method!=='GET')return json(res,405,{error:'Method not allowed'},rid);
