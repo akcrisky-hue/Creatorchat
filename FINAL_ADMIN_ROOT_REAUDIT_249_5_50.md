@@ -1,0 +1,1 @@
+CreatorChat v249.5.50: hosted root without creator/creatorId is a full-screen server-authenticated Admin Login gate; all Fan pages/nav are hidden until successful admin authentication. Creator public links remain Fan-only.
